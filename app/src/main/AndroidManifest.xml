@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.hereliesaz.et2bruteforce"> <!-- Ensure package name matches -->
+
+    <!-- Permission to draw overlays -->
+    <!-- Max SDK added as recommended for SYSTEM_ALERT_WINDOW -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"
+        android:maxSdkVersion="33" /> <!-- Declaring max SDK is good practice for sensitive perms -->
+
+    <!-- Separate declaration for FOREGROUND_SERVICE needed for overlays on Android 14+ -->
+    <!-- Android 14 requires foreground service type for SYSTEM_ALERT_WINDOW -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED"
+        tools:ignore="ProtectedPermissions" /> <!-- Needed for TYPE_APPLICATION_OVERLAY on 14+ -->
+
+
+    <!-- Permission required for Accessibility Service -->
+    <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE"
+        tools:ignore="ProtectedPermissions" /> <!-- Ignore lint warning for this permission -->
+
+
+    <application
+        android:name=".core.MyApp"
+    android:allowBackup="true"
+    android:icon="@mipmap/ic_launcher"
+    android:label="@string/app_name"
+    android:roundIcon="@mipmap/ic_launcher_round"
+    android:supportsRtl="true"
+    android:theme="@style/Theme.Et2BruteForce"
+    android:dataExtractionRules="@xml/data_extraction_rules"
+    android:fullBackupContent="@xml/backup_rules"
+    tools:targetApi="34"> <!-- Target API level -->
+
+    <!-- Main Activity for setup/permissions -->
+    <activity
+        android:name=".MainActivity"
+        android:exported="true"
+        android:theme="@style/Theme.Et2BruteForce">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+    </activity>
+
+    <!-- Floating Control Service -->
+    <service
+        android:name=".services.FloatingControlService"
+        android:enabled="true"
+        android:exported="false"
+
+    android:foregroundServiceType="systemExempted"
+    tools:ignore="ForegroundServicePermission,ForegroundServiceType" /> <!-- Ignore lint if type isn't recognized by older tools -->
+
+    <!-- Accessibility Service -->
+    <service
+        android:name=".services.BruteforceAccessibilityService"
+        android:enabled="true"
+        android:exported="false"
+    android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+    android:label="@string/accessibility_service_label">
+    <intent-filter>
+        <action android:name="android.accessibilityservice.AccessibilityService" />
+    </intent-filter>
+    <!-- Link to the XML configuration file for the service -->
+    <meta-data
+        android:name="android.accessibilityservice"
+        android:resource="@xml/accessibility_service_config" />
+</service>
+
+    </application>
+
+    </manifest>
