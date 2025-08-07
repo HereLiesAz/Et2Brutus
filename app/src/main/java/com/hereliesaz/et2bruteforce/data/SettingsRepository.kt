@@ -35,8 +35,10 @@ class SettingsRepository @Inject constructor(
         private val KEY_DICT_URI = stringPreferencesKey("dict_uri")
         private val KEY_ATTEMPT_PACE = longPreferencesKey("attempt_pace")
         private val KEY_RESUME_LAST = booleanPreferencesKey("resume_last")
+        private val KEY_SINGLE_ATTEMPT_MODE = booleanPreferencesKey("single_attempt_mode")
         private val KEY_LAST_ATTEMPT = stringPreferencesKey("last_attempt")
-        // Consider storing keyword lists if they need to be user-configurable
+        private val KEY_SUCCESS_KEYWORDS = stringSetPreferencesKey("success_keywords")
+        private val KEY_CAPTCHA_KEYWORDS = stringSetPreferencesKey("captcha_keywords")
     }
 
     val settingsFlow: Flow<BruteforceSettings> = dataStore.data
@@ -58,7 +60,10 @@ class SettingsRepository @Inject constructor(
             val dictUri = preferences[KEY_DICT_URI]
             val attemptPace = preferences[KEY_ATTEMPT_PACE] ?: 100L
             val resumeLast = preferences[KEY_RESUME_LAST] ?: true
+            val singleAttemptMode = preferences[KEY_SINGLE_ATTEMPT_MODE] ?: false
             val lastAttempt = preferences[KEY_LAST_ATTEMPT]
+            val successKeywords = preferences[KEY_SUCCESS_KEYWORDS]?.toList() ?: BruteforceSettings().successKeywords
+            val captchaKeywords = preferences[KEY_CAPTCHA_KEYWORDS]?.toList() ?: BruteforceSettings().captchaKeywords
 
             BruteforceSettings(
                 characterLength = charLength,
@@ -66,10 +71,24 @@ class SettingsRepository @Inject constructor(
                 dictionaryUri = dictUri,
                 attemptPaceMillis = attemptPace,
                 resumeFromLast = resumeLast,
-                lastAttempt = lastAttempt
-                // Default keywords are used here, load from prefs if needed
+                singleAttemptMode = singleAttemptMode,
+                lastAttempt = lastAttempt,
+                successKeywords = successKeywords,
+                captchaKeywords = captchaKeywords
             )
         }
+
+    suspend fun updateSuccessKeywords(keywords: List<String>) {
+        updatePreference(KEY_SUCCESS_KEYWORDS, keywords.toSet())
+    }
+
+    suspend fun updateCaptchaKeywords(keywords: List<String>) {
+        updatePreference(KEY_CAPTCHA_KEYWORDS, keywords.toSet())
+    }
+
+    suspend fun updateSingleAttemptMode(enabled: Boolean) {
+        updatePreference(KEY_SINGLE_ATTEMPT_MODE, enabled)
+    }
 
     suspend fun updateCharacterLength(length: Int) {
         updatePreference(KEY_CHAR_LENGTH, length)

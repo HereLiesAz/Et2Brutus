@@ -9,13 +9,12 @@ import com.hereliesaz.et2bruteforce.comms.*
 import com.hereliesaz.et2bruteforce.data.SettingsRepository
 import com.hereliesaz.et2bruteforce.domain.BruteforceEngine
 import com.hereliesaz.et2bruteforce.model.* // Includes BruteforceState, CharacterSetType, NodeType
-import com.hereliesaz.et2bruteforce.services.AccessibilityInteractionManager
 import com.hereliesaz.et2bruteforce.services.NodeInfo
 import com.hereliesaz.et2bruteforce.services.ScreenAnalysisResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import java.util.UUID // Import UUID
+import java.util.UUID
 import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -24,7 +23,6 @@ import kotlin.coroutines.suspendCoroutine
 class BruteforceViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val bruteforceEngine: BruteforceEngine,
-    private val interactionManager: AccessibilityInteractionManager,
     private val commsManager: AccessibilityCommsManager
 ) : ViewModel() {
 
@@ -57,45 +55,32 @@ class BruteforceViewModel @Inject constructor(
         // as the bruteforce loop handles them via requestAndWaitForEvent
     }
 
-    // Helper to process node identification results and update state machine
     private fun handleNodeIdentificationResult(event: NodeIdentifiedEvent) {
-        val currentStatus = uiState.value.status
-        if (event.nodeInfo != null) {
-            // Success
-            when (event.nodeType) {
-                NodeType.INPUT -> {
-                    if (currentStatus == BruteforceStatus.CONFIGURING_INPUT) {
-                        updateStatus(BruteforceStatus.CONFIGURING_SUBMIT)
-                        _uiState.update { it.copy(errorMessage = "Input identified. Now place marker over Submit.")}
-                    }
-                }
-                NodeType.SUBMIT -> {
-                    if (currentStatus == BruteforceStatus.CONFIGURING_SUBMIT) {
-                        updateStatus(BruteforceStatus.READY)
-                        _uiState.update { it.copy(errorMessage = "Submit identified. Ready to Start.")}
-                    }
-                }
-                NodeType.POPUP -> {
-                    if (currentStatus == BruteforceStatus.CONFIGURING_POPUP) {
-                        // Go back to paused/ready, let user manually resume if needed
-                        updateStatus(BruteforceStatus.PAUSED)
-                        _uiState.update { it.copy(errorMessage = "Popup configured. Resume manually.")}
-                    }
-                }
+        _uiState.update { currentState ->
+            val newConfigs = currentState.buttonConfigs.toMutableMap()
+            val existingConfig = newConfigs[event.nodeType]
+            if (existingConfig != null) {
+                newConfigs[event.nodeType] = existingConfig.copy(identifiedNodeInfo = event.nodeInfo)
+                Log.d(TAG, "Updated node info for ${event.nodeType}. Success: ${event.nodeInfo != null}")
             }
-        } else {
-            // Failure
-            _uiState.update { it.copy(errorMessage = "Failed to identify ${event.nodeType} node.") }
-            // Revert status if we were waiting for this specific node type
-            if ((event.nodeType == NodeType.INPUT && currentStatus == BruteforceStatus.CONFIGURING_INPUT) ||
-                (event.nodeType == NodeType.SUBMIT && currentStatus == BruteforceStatus.CONFIGURING_SUBMIT) ||
-                (event.nodeType == NodeType.POPUP && currentStatus == BruteforceStatus.CONFIGURING_POPUP)) {
-                // Go back to a reasonable previous state, e.g., IDLE or READY if submit failed
-                updateStatus(BruteforceStatus.IDLE) // Or based on which node failed
+            currentState.copy(buttonConfigs = newConfigs)
+        }
+        // After updating, check if we are now ready to start
+        checkIfReady()
+    }
+
+    private fun checkIfReady() {
+        val configs = uiState.value.buttonConfigs
+        val inputReady = configs[NodeType.INPUT]?.identifiedNodeInfo != null
+        val submitReady = configs[NodeType.SUBMIT]?.identifiedNodeInfo != null
+        if (inputReady && submitReady && uiState.value.status == BruteforceStatus.IDLE) {
+            updateStatus(BruteforceStatus.READY)
+        } else if (!inputReady || !submitReady) {
+            if (uiState.value.status == BruteforceStatus.READY) {
+                updateStatus(BruteforceStatus.IDLE)
             }
         }
     }
-
 
     // --- Configuration Methods ---
     fun updateCharacterLength(length: Int) {
@@ -132,59 +117,58 @@ class BruteforceViewModel @Inject constructor(
         }
     }
 
-    // --- Action Request Methods (Called from UI) ---
-    fun requestInputConfiguration(coords: Point) {
-        updateStatus(BruteforceStatus.CONFIGURING_INPUT)
-        interactionManager.clearAllNodes() // Clear previous nodes before identifying new ones
-        val requestId = generateRequestId()
-        Log.d(TAG, "Requesting input field configuration [${requestId}] via CommsManager at $coords")
-        _uiState.update { it.copy(errorMessage = "Place marker over Input field and release.")} // UI hint
+    fun toggleSingleAttemptMode(enabled: Boolean) {
         viewModelScope.launch {
-            commsManager.requestNodeIdentification(NodeIdentificationRequest(coords, NodeType.INPUT, requestId))
+            settingsRepository.updateSingleAttemptMode(enabled)
         }
     }
 
-    fun requestSubmitConfiguration(coords: Point) {
-        if (interactionManager.identifiedInputNode.value == null) {
-            Log.w(TAG, "Cannot configure submit, input not identified yet.")
-            _uiState.update { it.copy(errorMessage = "Identify Input Field First") }
-            return
-        }
-        updateStatus(BruteforceStatus.CONFIGURING_SUBMIT)
-        val requestId = generateRequestId()
-        Log.d(TAG, "Requesting submit button configuration [${requestId}] via CommsManager at $coords")
-        _uiState.update { it.copy(errorMessage = "Place marker over Submit button and release.")} // UI hint
+    fun updateSuccessKeywords(keywords: List<String>) {
         viewModelScope.launch {
-            commsManager.requestNodeIdentification(NodeIdentificationRequest(coords, NodeType.SUBMIT, requestId))
+            settingsRepository.updateSuccessKeywords(keywords)
         }
     }
 
-    fun requestPopupConfiguration(coords: Point) {
-        // Should ideally only be callable when paused/error/captcha state requires it
-        if(uiState.value.status != BruteforceStatus.PAUSED && uiState.value.status != BruteforceStatus.CAPTCHA_DETECTED) {
-            Log.w(TAG, "Popup configuration requested in unexpected state: ${uiState.value.status}")
-            // Optionally show error message
-            // return
-        }
-        updateStatus(BruteforceStatus.CONFIGURING_POPUP)
-        val requestId = generateRequestId()
-        Log.d(TAG, "Requesting popup button configuration [${requestId}] via CommsManager at $coords")
-        _uiState.update { it.copy(errorMessage = "Place marker over Popup button and release.")} // UI hint
+    fun updateCaptchaKeywords(keywords: List<String>) {
         viewModelScope.launch {
-            commsManager.requestNodeIdentification(NodeIdentificationRequest(coords, NodeType.POPUP, requestId))
+            settingsRepository.updateCaptchaKeywords(keywords)
+        }
+    }
+
+    // --- New Action Request Methods ---
+    fun updateButtonPosition(viewKey: Any, newPosition: Point) {
+        if (viewKey !is NodeType) return // Only handle config buttons
+
+        _uiState.update { currentState ->
+            val newConfigs = currentState.buttonConfigs.toMutableMap()
+            val existingConfig = newConfigs[viewKey]
+            if (existingConfig != null) {
+                newConfigs[viewKey] = existingConfig.copy(position = newPosition)
+            }
+            currentState.copy(buttonConfigs = newConfigs)
+        }
+    }
+
+    fun identifyNodeAt(nodeType: NodeType, point: Point) {
+        val requestId = generateRequestId()
+        Log.d(TAG, "Requesting node identification for $nodeType at $point [${requestId}]")
+        viewModelScope.launch {
+            commsManager.requestNodeIdentification(NodeIdentificationRequest(point, nodeType, requestId))
         }
     }
 
     // --- Bruteforce Action Methods ---
     fun startBruteforce() {
-        val currentUiState = uiState.value // Capture current state
+        val currentUiState = uiState.value
         if (currentUiState.status != BruteforceStatus.READY && currentUiState.status != BruteforceStatus.PAUSED) {
             Log.w(TAG, "Cannot start, state is ${currentUiState.status}")
-            _uiState.update { it.copy(errorMessage = "Configure Input/Submit first or invalid state.") }
+            _uiState.update { it.copy(errorMessage = "Not in a startable state.") }
             return
         }
-        val inputNode = interactionManager.identifiedInputNode.value
-        val submitNode = interactionManager.identifiedSubmitNode.value
+        val inputNode = currentUiState.buttonConfigs[NodeType.INPUT]?.identifiedNodeInfo
+        val submitNode = currentUiState.buttonConfigs[NodeType.SUBMIT]?.identifiedNodeInfo
+        val popupNode = currentUiState.buttonConfigs[NodeType.POPUP]?.identifiedNodeInfo
+
         if (inputNode == null || submitNode == null) {
             Log.e(TAG, "Cannot start, input or submit node not identified.")
             _uiState.update { it.copy(errorMessage = "Input or Submit node missing.") }
@@ -222,7 +206,7 @@ class BruteforceViewModel @Inject constructor(
                             Log.v(TAG, "Attempting dictionary word: $candidate")
                             _uiState.update { it.copy(currentAttempt = candidate, dictionaryLoadProgress = progress, attemptCount = attemptCounter + 1) } // Update count immediately
 
-                            val attemptResult = performSingleAttempt(inputNode, submitNode, candidate, currentSettings)
+                            val attemptResult = performSingleAttempt(inputNode, submitNode, popupNode, candidate, currentSettings)
 
                             // Update last attempt *after* successful processing of the attempt
                             settingsRepository.updateLastAttempt(candidate)
@@ -230,6 +214,12 @@ class BruteforceViewModel @Inject constructor(
 
                             // Handle result (cancel job if needed)
                             handleAttemptResult(attemptResult, candidate)
+
+                            // If single attempt mode is on, pause here.
+                            if (currentSettings.singleAttemptMode) {
+                                pauseBruteforce()
+                                return@collect
+                            }
                         }
                     // Reset last attempt only if dictionary completed successfully and we are still running
                     if (dictionaryCompletedSuccessfully && isActive && uiState.value.status == BruteforceStatus.RUNNING) {
@@ -259,12 +249,18 @@ class BruteforceViewModel @Inject constructor(
                             Log.v(TAG, "Attempting permutation: $candidate")
                             _uiState.update { it.copy(currentAttempt = candidate, dictionaryLoadProgress = 1f, attemptCount = attemptCounter + 1)} // Update count immediately
 
-                            val attemptResult = performSingleAttempt(inputNode, submitNode, candidate, permutationSettings)
+                            val attemptResult = performSingleAttempt(inputNode, submitNode, popupNode, candidate, permutationSettings)
 
                             settingsRepository.updateLastAttempt(candidate)
                             attemptCounter++
 
                             handleAttemptResult(attemptResult, candidate)
+
+                            // If single attempt mode is on, pause here.
+                            if (permutationSettings.singleAttemptMode) {
+                                pauseBruteforce()
+                                return@collect
+                            }
                         }
                 }
 
@@ -331,18 +327,17 @@ class BruteforceViewModel @Inject constructor(
     private suspend fun performSingleAttempt(
         inputNode: NodeInfo,
         submitNode: NodeInfo,
+        popupNode: NodeInfo?, // Can be null
         candidate: String,
-        settings: BruteforceSettings // Pass snapshot of settings for this attempt
+        settings: BruteforceSettings
     ): AttemptResult = suspendCoroutine { continuation ->
-        // Use a dedicated child scope for this attempt to manage timeouts/cancellation per attempt?
-        // Or rely on the main job cancellation. Sticking with main job for now.
-        val attemptScope = CoroutineScope(viewModelScope.coroutineContext + SupervisorJob()) // Child scope
+        val attemptScope = CoroutineScope(viewModelScope.coroutineContext + SupervisorJob())
         attemptScope.launch {
             try {
                 val inputRequestId = generateRequestId()
                 val submitRequestId = generateRequestId()
                 val analysisRequestId = generateRequestId()
-                var popupRequestId: String? = null
+                var popupRequestId: String?
 
                 // 1. Input Text
                 Log.d(TAG, "performSingleAttempt: Requesting input text [${inputRequestId}]")
@@ -374,31 +369,29 @@ class BruteforceViewModel @Inject constructor(
 
                 // 5. Handle Result
                 when (analysisResult) {
-                    ScreenAnalysisResult.SuccessDetected -> if(continuation.context.isActive) continuation.resume(AttemptResult.SUCCESS)
-                    ScreenAnalysisResult.CaptchaDetected -> if(continuation.context.isActive) continuation.resume(AttemptResult.CAPTCHA)
+                    ScreenAnalysisResult.SuccessDetected -> if (continuation.context.isActive) continuation.resume(AttemptResult.SUCCESS)
+                    ScreenAnalysisResult.CaptchaDetected -> if (continuation.context.isActive) continuation.resume(AttemptResult.CAPTCHA)
                     ScreenAnalysisResult.Unknown -> {
-                        val popupNode = interactionManager.identifiedPopupNode.value // Check if popup configured
                         if (popupNode != null) {
                             popupRequestId = generateRequestId()
-                            Log.d(TAG, "Coroutine: Attempting to click identified popup button [${popupRequestId}].")
+                            Log.d(TAG, "Analysis failed, attempting to click configured popup node [$popupRequestId].")
                             val clickPopupSuccess = requestActionAndWait(popupRequestId, 5000L) {
-                                commsManager.requestClickNode(ClickNodeRequest(popupNode, popupRequestId))
+                                commsManager.requestClickNode(ClickNodeRequest(popupNode, popupRequestId!!))
                             }
-                            if (!clickPopupSuccess) {
-                                Log.w(TAG,"Coroutine: Failed to click configured popup button [$popupRequestId].")
-                                if(continuation.context.isActive) continuation.resume(AttemptResult.POPUP_UNHANDLED)
-                            } else {
-                                Log.d(TAG, "Coroutine: Clicked configured popup button [$popupRequestId].")
+                            if (clickPopupSuccess) {
+                                Log.d(TAG, "Clicked popup successfully. Assuming failure for this cycle.")
                                 delay(200) // Small delay after clicking popup
-                                if(continuation.context.isActive) continuation.resume(AttemptResult.FAILURE) // Assume failure for this cycle
+                                if (continuation.context.isActive) continuation.resume(AttemptResult.FAILURE)
+                            } else {
+                                Log.w(TAG, "Failed to click configured popup. Pausing.")
+                                if (continuation.context.isActive) continuation.resume(AttemptResult.POPUP_UNHANDLED)
                             }
                         } else {
-                            // No known popup, assume standard failure
-                            if(continuation.context.isActive) continuation.resume(AttemptResult.FAILURE)
+                            // No popup configured, assume standard failure
+                            if (continuation.context.isActive) continuation.resume(AttemptResult.FAILURE)
                         }
                     }
                 }
-
             } catch (e: CancellationException) {
                 Log.d(TAG, "Attempt coroutine cancelled.")
                 // Don't resume continuation if cancelled
@@ -478,8 +471,18 @@ class BruteforceViewModel @Inject constructor(
         bruteforceJob?.cancel()
         bruteforceJob = null
         viewModelScope.launch { settingsRepository.updateLastAttempt(null) } // Clear last attempt on stop
-        _uiState.update { it.copy(currentAttempt = null, attemptCount = 0, dictionaryLoadProgress = 0f) }
-        interactionManager.clearAllNodes()
+        // Reset button states but keep their positions
+        _uiState.update { currentState ->
+            val newConfigs = currentState.buttonConfigs.mapValues { entry ->
+                entry.value.copy(identifiedNodeInfo = null)
+            }
+            currentState.copy(
+                currentAttempt = null,
+                attemptCount = 0,
+                dictionaryLoadProgress = 0f,
+                buttonConfigs = newConfigs
+            )
+        }
         updateStatus(BruteforceStatus.IDLE)
         Log.i(TAG, "Bruteforce Stopped.")
     }

@@ -1,12 +1,14 @@
 package com.hereliesaz.et2bruteforce.ui.overlay
 
 import android.graphics.Point
-import androidx.compose.animation.*
-import androidx.compose.foundation.background
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -14,8 +16,9 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.graphicsLayer
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -23,277 +26,439 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.DpOffset
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
 import com.hereliesaz.et2bruteforce.model.BruteforceState
 import com.hereliesaz.et2bruteforce.model.BruteforceStatus
 import com.hereliesaz.et2bruteforce.model.CharacterSetType
+import com.hereliesaz.et2bruteforce.model.NodeType
+import com.hereliesaz.et2bruteforce.services.FloatingControlService.Companion.MAIN_CONTROLLER_KEY
+import kotlin.math.cos
 import kotlin.math.roundToInt
+import kotlin.math.sin
 
-// Main entry point for the overlay UI
 @Composable
-fun OverlayUi(
+fun RootOverlay(
+    viewKey: Any,
     uiState: BruteforceState,
     onDrag: (deltaX: Float, deltaY: Float) -> Unit,
-    onTap: () -> Unit, // Placeholder for simple tap action if needed
-    onIdentifyInput: (Point) -> Unit,
-    onIdentifySubmit: (Point) -> Unit,
-    onIdentifyPopup: (Point) -> Unit,
+    onDragEnd: (Point) -> Unit,
+    onStart: () -> Unit,
+    onPause: () -> Unit,
+    onStop: () -> Unit,
+    onSelectDictionary: () -> Unit,
     onUpdateLength: (Int) -> Unit,
     onUpdateCharset: (CharacterSetType) -> Unit,
     onUpdatePace: (Long) -> Unit,
     onToggleResume: (Boolean) -> Unit,
+    onToggleSingleAttemptMode: (Boolean) -> Unit,
+    onUpdateSuccessKeywords: (List<String>) -> Unit,
+    onUpdateCaptchaKeywords: (List<String>) -> Unit
+) {
+    when (viewKey) {
+        is NodeType -> {
+            ConfigButtonUi(
+                nodeType = viewKey,
+                uiState = uiState,
+                onDrag = onDrag,
+                onDragEnd = onDragEnd
+            )
+        }
+        MAIN_CONTROLLER_KEY -> {
+            MainControllerUi(
+                uiState = uiState,
+                onDrag = onDrag,
+                onStart = onStart,
+                onPause = onPause,
+                onStop = onStop,
+                onSelectDictionary = onSelectDictionary,
+                onUpdateLength = onUpdateLength,
+                onUpdateCharset = onUpdateCharset,
+                onUpdatePace = onUpdatePace,
+                onToggleResume = onToggleResume,
+                onToggleSingleAttemptMode = onToggleSingleAttemptMode,
+                onUpdateSuccessKeywords = onUpdateSuccessKeywords,
+                onUpdateCaptchaKeywords = onUpdateCaptchaKeywords
+            )
+        }
+    }
+}
+
+@Composable
+fun MainControllerUi(
+    uiState: BruteforceState,
+    onDrag: (deltaX: Float, deltaY: Float) -> Unit,
     onStart: () -> Unit,
     onPause: () -> Unit,
     onStop: () -> Unit,
-    onConfirmSuccess: () -> Unit,
-    onRejectSuccess: () -> Unit,
-    onSelectDictionary: () -> Unit // Callback to request dictionary selection
+    onSelectDictionary: () -> Unit,
+    onUpdateLength: (Int) -> Unit,
+    onUpdateCharset: (CharacterSetType) -> Unit,
+    onUpdatePace: (Long) -> Unit,
+    onToggleResume: (Boolean) -> Unit,
+    onToggleSingleAttemptMode: (Boolean) -> Unit,
+    onUpdateSuccessKeywords: (List<String>) -> Unit,
+    onUpdateCaptchaKeywords: (List<String>) -> Unit
 ) {
     var showOptionsMenu by rememberSaveable { mutableStateOf(false) }
-    var fabCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
-    var fabOffset by remember { mutableStateOf(IntOffset.Zero) } // For positioning popup
+    var showSettingsDialog by rememberSaveable { mutableStateOf(false) }
+    val fabSize = 56.dp
 
-    val isIdentifying = uiState.status == BruteforceStatus.CONFIGURING_INPUT ||
-            uiState.status == BruteforceStatus.CONFIGURING_SUBMIT ||
-            uiState.status == BruteforceStatus.CONFIGURING_POPUP
-
-    val density = LocalDensity.current
-
-    Box(modifier = Modifier.wrapContentSize()) { // Wrap content to allow placement
+    Box(
+        modifier = Modifier
+            .wrapContentSize()
+            .padding(fabSize / 2)
+    ) {
+        MindMapOptionsMenu(
+            isVisible = showOptionsMenu,
+            uiState = uiState,
+            onStart = onStart,
+            onPause = onPause,
+            onStop = onStop,
+            onShowSettings = { showSettingsDialog = true },
+            onSelectDictionary = onSelectDictionary
+        )
 
         FloatingActionButton(
-            onClick = {
-                if (!isIdentifying) { // Only toggle menu if not in identification mode
-                    showOptionsMenu = !showOptionsMenu
-                    onTap() // Call generic tap handler
-                }
-                // If identifying, the drag gesture end handles coordinate reporting
-            },
+            onClick = { showOptionsMenu = !showOptionsMenu },
             shape = CircleShape,
             modifier = Modifier
-                .offset { fabOffset } // Apply offset for popup positioning if needed
+                .align(Alignment.Center)
+                .size(fabSize)
+                .pointerInput(Unit) {
+                    detectDragGestures { change, dragAmount ->
+                        change.consume()
+                        onDrag(dragAmount.x, dragAmount.y)
+                    }
+                }
+        ) {
+            val icon = when {
+                showOptionsMenu -> Icons.Default.Close
+                uiState.status == BruteforceStatus.RUNNING -> Icons.Default.Pause
+                uiState.status == BruteforceStatus.PAUSED || uiState.status == BruteforceStatus.READY -> Icons.Default.PlayArrow
+                uiState.status == BruteforceStatus.SUCCESS_DETECTED -> Icons.Default.CheckCircle
+                uiState.status == BruteforceStatus.CAPTCHA_DETECTED -> Icons.Default.Security
+                uiState.status == BruteforceStatus.ERROR || uiState.status == BruteforceStatus.DICTIONARY_LOAD_FAILED -> Icons.Default.Error
+                else -> Icons.Default.Menu
+            }
+            Icon(icon, contentDescription = "Main Action Button")
+        }
+
+        if (showSettingsDialog) {
+            SettingsDialog(
+                uiState = uiState,
+                onUpdateLength = onUpdateLength,
+                onUpdateCharset = onUpdateCharset,
+                onUpdatePace = onUpdatePace,
+                onToggleResume = onToggleResume,
+                onToggleSingleAttemptMode = onToggleSingleAttemptMode,
+                onUpdateSuccessKeywords = onUpdateSuccessKeywords,
+                onUpdateCaptchaKeywords = onUpdateCaptchaKeywords,
+                onDismiss = { showSettingsDialog = false }
+            )
+        }
+    }
+}
+
+@Composable
+fun ConfigButtonUi(
+    nodeType: NodeType,
+    uiState: BruteforceState,
+    onDrag: (deltaX: Float, deltaY: Float) -> Unit,
+    onDragEnd: (Point) -> Unit
+) {
+    val buttonConfig = uiState.buttonConfigs[nodeType]
+    val isIdentified = buttonConfig?.identifiedNodeInfo != null
+    var fabCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+
+    Box(contentAlignment = Alignment.Center) {
+        FloatingActionButton(
+            onClick = { /* Drag only */ },
+            shape = CircleShape,
+            modifier = Modifier
+                .size(48.dp)
                 .onGloballyPositioned { coordinates ->
                     fabCoordinates = coordinates
-                    // Update offset based on position if needed for popup
-                    // fabOffset = IntOffset(coordinates.positionInRoot().x.roundToInt(), coordinates.positionInRoot().y.roundToInt())
                 }
                 .pointerInput(Unit) {
                     detectDragGestures(
-                        onDragStart = { showOptionsMenu = false }, // Hide menu on drag start
                         onDrag = { change, dragAmount ->
                             change.consume()
                             onDrag(dragAmount.x, dragAmount.y)
                         },
                         onDragEnd = {
-                            // If in identification mode, report coordinates
-                            fabCoordinates?.let { coords ->
-                                val rootPos = coords.positionInRoot()
-                                val centerX = rootPos.x + coords.size.width / 2f
-                                val centerY = rootPos.y + coords.size.height / 2f
-                                val point = Point(centerX.roundToInt(), centerY.roundToInt())
-
-                                when (uiState.status) {
-                                    BruteforceStatus.CONFIGURING_INPUT -> onIdentifyInput(point)
-                                    BruteforceStatus.CONFIGURING_SUBMIT -> onIdentifySubmit(point)
-                                    BruteforceStatus.CONFIGURING_POPUP -> onIdentifyPopup(point)
-                                    else -> { /* Do nothing on drag end */ }
-                                }
+                            fabCoordinates?.let {
+                                val rootPos = it.positionInRoot()
+                                val center = Point(
+                                    (rootPos.x + it.size.width / 2f).roundToInt(),
+                                    (rootPos.y + it.size.height / 2f).roundToInt()
+                                )
+                                onDragEnd(center)
                             }
                         }
                     )
-                }
+                },
+            containerColor = if (isIdentified) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
         ) {
-            // Change icon based on state
-            val icon = when (uiState.status) {
-                BruteforceStatus.RUNNING -> Icons.Default.Pause
-                BruteforceStatus.PAUSED, BruteforceStatus.READY -> Icons.Default.PlayArrow
-                BruteforceStatus.CONFIGURING_INPUT,
-                BruteforceStatus.CONFIGURING_SUBMIT,
-                BruteforceStatus.CONFIGURING_POPUP -> Icons.Default.GpsFixed // Target icon
-                BruteforceStatus.SUCCESS_DETECTED -> Icons.Default.CheckCircle
-                BruteforceStatus.CAPTCHA_DETECTED -> Icons.Default.Security // Shield or similar
-                BruteforceStatus.ERROR,
-                BruteforceStatus.DICTIONARY_LOAD_FAILED -> Icons.Default.Error
-                else -> Icons.Default.Settings // Idle state
+            val icon = when (nodeType) {
+                NodeType.INPUT -> Icons.Default.Keyboard
+                NodeType.SUBMIT -> Icons.Default.Send
+                NodeType.POPUP -> Icons.Default.Warning
             }
-            Icon(icon, contentDescription = "Main Action Button")
+            Icon(icon, contentDescription = "$nodeType Button")
         }
-
-        // Options Menu Popup (Mind Map style needs custom layout, using simple Popup for now)
-        if (showOptionsMenu) {
-            // Calculate offset relative to the FAB if needed
-            val popupOffset = DpOffset(x = 60.dp, y = (-30).dp) // Adjust as needed
-
-            Popup(
-                alignment = Alignment.TopStart, // Align relative to parent Box
-                offset = popupOffset,
-                properties = PopupProperties(focusable = false, dismissOnClickOutside = true),
-                onDismissRequest = { showOptionsMenu = false }
-            ) {
-                OptionsMenuContent(
-                    uiState = uiState,
-                    onUpdateLength = onUpdateLength,
-                    onUpdateCharset = onUpdateCharset,
-                    onUpdatePace = onUpdatePace,
-                    onToggleResume = onToggleResume,
-                    onStart = onStart,
-                    onPause = onPause,
-                    onStop = onStop,
-                    onConfirmSuccess = onConfirmSuccess,
-                    onRejectSuccess = onRejectSuccess,
-                    onSelectDictionary = onSelectDictionary,
-                    onClose = { showOptionsMenu = false }
-                )
-            }
-        }
-
-        // Status indicator Text (optional, could be part of options menu)
-        AnimatedVisibility(
-            visible = uiState.status != BruteforceStatus.IDLE && !showOptionsMenu,
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
-            Text(
-                text = getStatusMessage(uiState),
+        if (isIdentified) {
+            Icon(
+                Icons.Default.CheckCircle,
+                contentDescription = "Identified",
+                tint = Color.Green,
                 modifier = Modifier
-                    .offset(y = 60.dp) // Position below FAB
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f), RoundedCornerShape(4.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                fontSize = 10.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                    .size(16.dp)
+                    .align(Alignment.BottomEnd)
             )
         }
     }
 }
 
-// Composable for the contents of the options popup/menu
+private data class MindMapActionItem(
+    val icon: ImageVector,
+    val text: String,
+    val enabled: Boolean = true,
+    val onClick: () -> Unit
+)
+
 @Composable
-private fun OptionsMenuContent(
+private fun MindMapOptionsMenu(
+    isVisible: Boolean,
+    uiState: BruteforceState,
+    onStart: () -> Unit,
+    onPause: () -> Unit,
+    onStop: () -> Unit,
+    onShowSettings: () -> Unit,
+    onSelectDictionary: () -> Unit
+) {
+    val status = uiState.status
+
+    val items = remember(status) {
+        listOf(
+            MindMapActionItem(
+                icon = Icons.Default.PlayArrow,
+                text = "Start",
+                enabled = status == BruteforceStatus.READY || status == BruteforceStatus.PAUSED,
+                onClick = onStart
+            ),
+            MindMapActionItem(
+                icon = Icons.Default.Pause,
+                text = "Pause",
+                enabled = status == BruteforceStatus.RUNNING,
+                onClick = onPause
+            ),
+            MindMapActionItem(
+                icon = Icons.Default.Stop,
+                text = "Stop",
+                enabled = status != BruteforceStatus.IDLE,
+                onClick = onStop
+            ),
+            MindMapActionItem(
+                icon = Icons.Default.Book,
+                text = "Dictionary",
+                onClick = onSelectDictionary
+            ),
+            MindMapActionItem(
+                icon = Icons.Default.Settings,
+                text = "Settings",
+                onClick = onShowSettings
+            ),
+        )
+    }
+
+    val animationProgress by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = tween(durationMillis = 300)
+    )
+
+    if (animationProgress > 0f) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer(alpha = animationProgress)
+        ) {
+            val radius = 90.dp
+            val angleStep = 360f / items.size
+
+            Canvas(modifier = Modifier.matchParentSize()) {
+                val center = androidx.compose.ui.geometry.Offset(size.width / 2, size.height / 2)
+                items.forEachIndexed { index, _ ->
+                    val angleRad = Math.toRadians((angleStep * index - 90).toDouble()).toFloat()
+                    val nodeCenter = androidx.compose.ui.geometry.Offset(
+                        x = center.x + (radius.toPx() * animationProgress) * cos(angleRad),
+                        y = center.y + (radius.toPx() * animationProgress) * sin(angleRad)
+                    )
+                    drawLine(
+                        color = MaterialTheme.colorScheme.primary,
+                        start = center,
+                        end = nodeCenter,
+                        strokeWidth = 2.dp.toPx() * animationProgress,
+                        cap = StrokeCap.Round
+                    )
+                }
+            }
+
+            items.forEachIndexed { index, item ->
+                val angleRad = Math.toRadians((angleStep * index - 90).toDouble()).toFloat()
+                MindMapNode(
+                    item = item,
+                    radius = radius * animationProgress,
+                    angleRad = angleRad,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MindMapNode(
+    item: MindMapActionItem,
+    radius: Dp,
+    angleRad: Float,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+    val xOffset = with(density) { (radius.toPx() * cos(angleRad)).toDp() }
+    val yOffset = with(density) { (radius.toPx() * sin(angleRad)).toDp() }
+
+    Column(
+        modifier = modifier.offset(x = xOffset, y = yOffset),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        FloatingActionButton(
+            onClick = item.onClick,
+            enabled = item.enabled,
+            shape = CircleShape,
+            modifier = Modifier.size(40.dp),
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        ) {
+            Icon(item.icon, contentDescription = item.text, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+        }
+        Text(
+            text = item.text,
+            fontSize = 10.sp,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+    }
+}
+
+@Composable
+private fun SettingsDialog(
     uiState: BruteforceState,
     onUpdateLength: (Int) -> Unit,
     onUpdateCharset: (CharacterSetType) -> Unit,
     onUpdatePace: (Long) -> Unit,
     onToggleResume: (Boolean) -> Unit,
-    onStart: () -> Unit,
-    onPause: () -> Unit,
-    onStop: () -> Unit,
-    onConfirmSuccess: () -> Unit,
-    onRejectSuccess: () -> Unit,
-    onSelectDictionary: () -> Unit,
-    onClose: () -> Unit
+    onToggleSingleAttemptMode: (Boolean) -> Unit,
+    onUpdateSuccessKeywords: (List<String>) -> Unit,
+    onUpdateCaptchaKeywords: (List<String>) -> Unit,
+    onDismiss: () -> Unit
 ) {
     val settings = uiState.settings
-    val status = uiState.status
-
-    Card(
-        modifier = Modifier.widthIn(max = 300.dp), // Limit width
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Text("Options", style = MaterialTheme.typography.titleMedium)
-                IconButton(onClick = onClose, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = "Close Options")
-                }
-            }
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
-
-            // Status Specific Actions
-            if (status == BruteforceStatus.SUCCESS_DETECTED) {
-                SuccessConfirmation(uiState.successCandidate ?: "", onConfirmSuccess, onRejectSuccess)
-                Divider(modifier = Modifier.padding(vertical = 8.dp))
-            } else if (status == BruteforceStatus.CAPTCHA_DETECTED) {
-                Text("CAPTCHA Detected!", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
-                Text("Manual intervention required.", style = MaterialTheme.typography.bodySmall)
-                Divider(modifier = Modifier.padding(vertical = 8.dp))
-            }
-
-            // General Controls (Start/Pause/Stop)
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                Button(onClick = onStart, enabled = status == BruteforceStatus.READY || status == BruteforceStatus.PAUSED) { Text("Start") }
-                Button(onClick = onPause, enabled = status == BruteforceStatus.RUNNING) { Text("Pause") }
-                Button(onClick = onStop, enabled = status != BruteforceStatus.IDLE) { Text("Stop") }
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Character Length Slider
-            Text("Length: ${settings.characterLength}", style = MaterialTheme.typography.bodyMedium)
-            Slider(
-                value = settings.characterLength.toFloat(),
-                onValueChange = { onUpdateLength(it.roundToInt()) },
-                valueRange = 1f..12f,
-                steps = 10 // 11 steps for 12 values (0 to 11 corresponds to 1 to 12)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Character Set Picker
-            Text("Character Set:", style = MaterialTheme.typography.bodyMedium)
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                CharacterSetChip(CharacterSetType.LETTERS, settings.characterSetType, onUpdateCharset)
-                CharacterSetChip(CharacterSetType.NUMBERS, settings.characterSetType, onUpdateCharset)
-            }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                CharacterSetChip(CharacterSetType.LETTERS_NUMBERS, settings.characterSetType, onUpdateCharset)
-                CharacterSetChip(CharacterSetType.ALPHANUMERIC_SPECIAL, settings.characterSetType, onUpdateCharset)
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-
-
-            // Pace Input
-            var paceText by remember(settings.attemptPaceMillis) { mutableStateOf(settings.attemptPaceMillis.toString()) }
-            OutlinedTextField(
-                value = paceText,
-                onValueChange = {
-                    paceText = it
-                    it.toLongOrNull()?.let { pace -> onUpdatePace(pace) }
-                },
-                label = { Text("Pace (ms)") },
-                keyboardOptions = androidx.compose.ui.text.input.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
-                leadingIcon = { Icon(Icons.Default.Timer, null)}
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Dictionary Selection
-            Button(onClick = onSelectDictionary, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Default.Book, null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(settings.dictionaryUri?.substringAfterLast('/') ?: "Load Dictionary", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Resume Toggle
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(
-                    checked = settings.resumeFromLast,
-                    onCheckedChange = onToggleResume
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Advanced Settings") },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text("Length: ${settings.characterLength}", style = MaterialTheme.typography.bodyMedium)
+                Slider(
+                    value = settings.characterLength.toFloat(),
+                    onValueChange = { onUpdateLength(it.roundToInt()) },
+                    valueRange = 1f..12f,
+                    steps = 10
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Resume from last attempt", style = MaterialTheme.typography.bodyMedium)
-            }
-            if (settings.resumeFromLast && settings.lastAttempt != null) {
-                Text(" Last: ${settings.lastAttempt}", style = MaterialTheme.typography.bodySmall, maxLines = 1)
-            }
+                Spacer(modifier = Modifier.height(8.dp))
 
-            // Display Current Attempt / Progress (if running)
-            if (status == BruteforceStatus.RUNNING || status == BruteforceStatus.PAUSED) {
-                Divider(modifier = Modifier.padding(vertical = 8.dp))
-                Text("Attempt #${uiState.attemptCount}: ${uiState.currentAttempt ?: "Starting..."}", style = MaterialTheme.typography.bodyMedium)
-                if (settings.dictionaryUri != null && uiState.dictionaryLoadProgress < 1.0f && uiState.dictionaryLoadProgress > 0f) {
-                    LinearProgressIndicator(progress = uiState.dictionaryLoadProgress, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
+                Text("Character Set:", style = MaterialTheme.typography.bodyMedium)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                    CharacterSetChip(CharacterSetType.LETTERS, settings.characterSetType, onUpdateCharset)
+                    CharacterSetChip(CharacterSetType.NUMBERS, settings.characterSetType, onUpdateCharset)
                 }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                    CharacterSetChip(CharacterSetType.LETTERS_NUMBERS, settings.characterSetType, onUpdateCharset)
+                    CharacterSetChip(CharacterSetType.ALPHANUMERIC_SPECIAL, settings.characterSetType, onUpdateCharset)
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                var paceText by remember(settings.attemptPaceMillis) { mutableStateOf(settings.attemptPaceMillis.toString()) }
+                OutlinedTextField(
+                    value = paceText,
+                    onValueChange = {
+                        paceText = it
+                        it.toLongOrNull()?.let { pace -> onUpdatePace(pace) }
+                    },
+                    label = { Text("Pace (ms)") },
+                    keyboardOptions = androidx.compose.ui.text.input.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
+                    leadingIcon = { Icon(Icons.Default.Timer, null) }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(
+                        checked = settings.resumeFromLast,
+                        onCheckedChange = onToggleResume
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Resume from last attempt", style = MaterialTheme.typography.bodyMedium)
+                }
+                if (settings.resumeFromLast && settings.lastAttempt != null) {
+                    Text(" Last: ${settings.lastAttempt}", style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(
+                        checked = settings.singleAttemptMode,
+                        onCheckedChange = onToggleSingleAttemptMode
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Single Attempt Mode", style = MaterialTheme.typography.bodyMedium)
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                var successKeywordsText by remember(uiState.settings.successKeywords) { mutableStateOf(uiState.settings.successKeywords.joinToString(",")) }
+                OutlinedTextField(
+                    value = successKeywordsText,
+                    onValueChange = {
+                        successKeywordsText = it
+                        onUpdateSuccessKeywords(it.split(',').map { kw -> kw.trim() }.filter { kw -> kw.isNotEmpty() })
+                    },
+                    label = { Text("Success Keywords (comma-separated)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                var captchaKeywordsText by remember(uiState.settings.captchaKeywords) { mutableStateOf(uiState.settings.captchaKeywords.joinToString(",")) }
+                OutlinedTextField(
+                    value = captchaKeywordsText,
+                    onValueChange = {
+                        captchaKeywordsText = it
+                        onUpdateCaptchaKeywords(it.split(',').map { kw -> kw.trim() }.filter { kw -> kw.isNotEmpty() })
+                    },
+                    label = { Text("CAPTCHA Keywords (comma-separated)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text("Close")
             }
         }
-    }
+    )
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -306,10 +471,9 @@ private fun CharacterSetChip(
         selected = type == selectedType,
         onClick = { onUpdateCharset(type) },
         label = { Text(type.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }, fontSize = 11.sp) },
-        modifier = Modifier.height(32.dp) // Make chips smaller
+        modifier = Modifier.height(32.dp)
     )
 }
-
 
 @Composable
 private fun SuccessConfirmation(
@@ -328,13 +492,9 @@ private fun SuccessConfirmation(
     }
 }
 
-// Helper to get a user-friendly status message
 private fun getStatusMessage(uiState: BruteforceState): String {
     return when (uiState.status) {
         BruteforceStatus.IDLE -> "Idle"
-        BruteforceStatus.CONFIGURING_INPUT -> "Tap over Input Field"
-        BruteforceStatus.CONFIGURING_SUBMIT -> "Tap over Submit Button"
-        BruteforceStatus.CONFIGURING_POPUP -> "Tap over Popup Button"
         BruteforceStatus.READY -> "Ready"
         BruteforceStatus.RUNNING -> "Running: ${uiState.currentAttempt ?: ""} (${uiState.attemptCount})"
         BruteforceStatus.PAUSED -> "Paused (${uiState.attemptCount})"
