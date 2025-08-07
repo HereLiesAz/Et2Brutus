@@ -4,5 +4,4 @@
 
         <string name="accessibility_service_label">Screen Bruteforcer Service</string>
         <string name="accessibility_service_description">Allows Screen Bruteforcer to interact with UI elements on screen for automated input.</string> <!-- Used in config xml -->
-
 </resources>

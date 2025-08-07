@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Et 2 BruteForce"
+rootProject.name = "Et2BruteForce"
 include(":app")
  

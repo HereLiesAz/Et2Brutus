@@ -3,19 +3,21 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("kotlin-kapt")
     id("com.google.dagger.hilt.android")
+    id("org.jetbrains.kotlin.kapt")
+    id("kotlin-compose")
     // id("org.jetbrains.kotlin.plugin.serialization") // Keep commented if not used
 }
 
 android {
     namespace = "com.hereliesaz.et2bruteforce"
     // *** UPDATED compileSdk ***
-    compileSdk = 35 // <-- Changed from 34 to 35
+    compileSdk = 36 // <-- Changed from 34 to 35
 
     defaultConfig {
         applicationId = "com.hereliesaz.et2bruteforce"
         minSdk = 26
         // *** UPDATED targetSdk ***
-        targetSdk = 35 // <-- Changed from 34 to 35 (match compileSdk)
+        targetSdk = 36 // <-- Changed from 34 to 35 (match compileSdk)
         versionCode = 1
         versionName = "1.0"
 
@@ -37,11 +39,11 @@ android {
     }
     java {
         toolchain {
-            languageVersion.set(JavaLanguageVersion.of(21))
+            languageVersion.set(JavaLanguageVersion.of(17))
         }
     }
     kotlinOptions {
-        jvmTarget = "21"
+        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
@@ -65,57 +67,57 @@ dependencies {
 
     // Core Android & Kotlin
     // *** UPDATED core-ktx version based on error message ***
-    implementation("androidx.core:core-ktx:1.15.0") // <-- Use the version required
-    implementation("androidx.appcompat:appcompat:1.7.0") // Keep as is unless required otherwise
-    implementation("com.google.android.material:material:1.12.0") // Keep as is
+    implementation(libs.androidx.core.ktx) // <-- Use the version required
+    implementation(libs.androidx.appcompat) // Keep as is unless required otherwise
+    implementation(libs.material) // Keep as is
 
     // Lifecycle
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7") // Keep stable version
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-service:2.8.7")
+    implementation(libs.androidx.lifecycle.runtime.ktx) // Keep stable version
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.service)
 
     // Activity Compose
     // *** UPDATED activity-compose version based on error message ***
-    implementation("androidx.activity:activity-compose:1.11.0-alpha02") // <-- Use the version required
+    implementation(libs.androidx.activity.compose) // <-- Use the version required
 
     // Jetpack Compose (BOM ensures compatible versions)
     val composeBom = platform("androidx.compose:compose-bom:2023.10.01") // Check for newer stable BOM if available
-    implementation("androidx.compose:compose-bom:2025.03.01")
-    androidTestImplementation("androidx.compose:compose-bom:2025.03.01")
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    debugImplementation("androidx.compose.ui:ui-tooling")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-core")
-    implementation("androidx.compose.material:material-icons-extended")
+    implementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.core)
+    implementation(libs.androidx.compose.material.icons.extended)
 
     // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2") // Keep stable version
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    implementation(libs.kotlinx.coroutines.core) // Keep stable version
+    implementation(libs.kotlinx.coroutines.android)
 
     // Hilt
-    implementation("com.google.dagger:hilt-android:2.56.1") // Keep stable version
-    kapt("com.google.dagger:hilt-compiler:2.56.1")
+    implementation(libs.hilt.android) // Keep stable version
+    kapt(libs.hilt.compiler)
 
     // DataStore
-    implementation("androidx.datastore:datastore-preferences:1.1.4") // Keep stable version
+    implementation(libs.androidx.datastore.preferences) // Keep stable version
 
     // SavedState
-    implementation("androidx.savedstate:savedstate-ktx:1.2.1") // Keep stable version
-    implementation("androidx.compose.runtime:runtime-saveable")
+    implementation(libs.androidx.savedstate.ktx) // Keep stable version
+    implementation(libs.androidx.compose.runtime.saveable)
 
     // Testing Dependencies
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     // Optional: Add desugaring dependency if enabling coreLibraryDesugaring
-    // coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 }
 
 kapt {
