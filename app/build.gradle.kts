@@ -1,10 +1,9 @@
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("kotlin-kapt")
-    id("com.google.dagger.hilt.android")
-    id("org.jetbrains.kotlin.kapt")
-    id("kotlin-compose")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.hilt.android)
+    alias(libs.plugins.kotlin.compose)
     // id("org.jetbrains.kotlin.plugin.serialization") // Keep commented if not used
 }
 
@@ -37,20 +36,11 @@ android {
         }
         debug {}
     }
-    java {
-        toolchain {
-            languageVersion.set(JavaLanguageVersion.of(17))
-        }
-    }
     kotlinOptions {
         jvmTarget = "17"
     }
     buildFeatures {
         compose = true
-    }
-    composeOptions {
-        // Check compatibility for Kotlin 1.9.21 and Compose UI libraries
-        kotlinCompilerExtensionVersion = "1.5.6" // Ensure this is compatible with SDK 35 if needed
     }
     packaging {
         resources {
@@ -83,7 +73,6 @@ dependencies {
     implementation(libs.androidx.activity.compose) // <-- Use the version required
 
     // Jetpack Compose (BOM ensures compatible versions)
-    val composeBom = platform("androidx.compose:compose-bom:2023.10.01") // Check for newer stable BOM if available
     implementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

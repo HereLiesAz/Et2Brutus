@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.hereliesaz.et2bruteforce"> <!-- Ensure package name matches -->
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Permission to draw overlays -->
     <!-- Max SDK added as recommended for SYSTEM_ALERT_WINDOW -->
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"
-        android:maxSdkVersion="33" /> <!-- Declaring max SDK is good practice for sensitive perms -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" /> <!-- Declaring max SDK is good practice for sensitive perms -->
 
     <!-- Separate declaration for FOREGROUND_SERVICE needed for overlays on Android 14+ -->
     <!-- Android 14 requires foreground service type for SYSTEM_ALERT_WINDOW -->
@@ -30,7 +28,7 @@
     android:theme="@style/Theme.Et2BruteForce"
     android:dataExtractionRules="@xml/data_extraction_rules"
     android:fullBackupContent="@xml/backup_rules"
-    tools:targetApi="34"> <!-- Target API level -->
+    tools:targetApi="36"> <!-- Target API level -->
 
     <!-- Main Activity for setup/permissions -->
     <activity
