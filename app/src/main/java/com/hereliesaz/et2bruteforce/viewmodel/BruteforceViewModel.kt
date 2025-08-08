@@ -51,6 +51,13 @@ class BruteforceViewModel @Inject constructor(
                 handleNodeIdentificationResult(event)
             }
             .launchIn(viewModelScope)
+
+        commsManager.dictionaryUriResult
+            .onEach { uri ->
+                Log.d(TAG, "Received dictionary URI: $uri")
+                updateDictionaryUri(uri)
+            }
+            .launchIn(viewModelScope)
         // No need for active listeners for ActionCompleted or AnalysisResult here
         // as the bruteforce loop handles them via requestAndWaitForEvent
     }
@@ -197,7 +204,7 @@ class BruteforceViewModel @Inject constructor(
                             Log.e(TAG, "Error in dictionary flow", e)
                             _uiState.update { it.copy(status = BruteforceStatus.DICTIONARY_LOAD_FAILED, errorMessage = "Dictionary Error: ${e.message}") }
                             // Stop on dictionary error
-                            this.coroutineContext.cancel() // Cancel the collector coroutine
+                            cancel() // Cancel the collector coroutine
                         }
                         .collect { (candidate, progress) ->
                             ensureActive() // Check if job was cancelled externally (e.g., user stop)
@@ -240,7 +247,7 @@ class BruteforceViewModel @Inject constructor(
                             Log.e(TAG, "Error in permutation flow", e)
                             updateStatus(BruteforceStatus.ERROR)
                             _uiState.update { it.copy(errorMessage = "Permutation Error: ${e.message}") }
-                            this.coroutineContext.cancel()
+                            cancel()
                         }
                         .collect { candidate ->
                             ensureActive()

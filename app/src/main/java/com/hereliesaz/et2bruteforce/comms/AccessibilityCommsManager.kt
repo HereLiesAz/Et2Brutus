@@ -2,6 +2,7 @@ package com.hereliesaz.et2bruteforce.comms
 
 import android.graphics.Point
 import com.hereliesaz.et2bruteforce.model.NodeType // <-- Updated Import
+import android.net.Uri
 import com.hereliesaz.et2bruteforce.services.NodeInfo
 import com.hereliesaz.et2bruteforce.services.ScreenAnalysisResult
 import kotlinx.coroutines.channels.BufferOverflow
@@ -79,5 +80,20 @@ class AccessibilityCommsManager @Inject constructor() {
     }
     suspend fun reportAnalysisResult(requestId: String, result: ScreenAnalysisResult) {
         _analysisResultEvent.emit(AnalysisResultEvent(requestId, result))
+    }
+
+    // --- Flows and Methods for UI -> Activity Communication ---
+    private val _openDictionaryPickerRequest = MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    val openDictionaryPickerRequest: SharedFlow<Unit> = _openDictionaryPickerRequest.asSharedFlow()
+
+    private val _dictionaryUriResult = MutableSharedFlow<Uri>(replay = 0, extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    val dictionaryUriResult: SharedFlow<Uri> = _dictionaryUriResult.asSharedFlow()
+
+    suspend fun requestOpenDictionaryPicker() {
+        _openDictionaryPickerRequest.emit(Unit)
+    }
+
+    suspend fun reportDictionaryUri(uri: Uri) {
+        _dictionaryUriResult.emit(uri)
     }
 }
