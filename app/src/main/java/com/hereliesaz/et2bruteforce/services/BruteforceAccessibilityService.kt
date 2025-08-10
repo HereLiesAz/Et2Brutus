@@ -274,7 +274,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
         val nearbyNodes = mutableListOf<Pair<AccessibilityNodeInfo, Int>>()
 
         // Inner recursive function - runs within the withContext(Default) scope
-        fun findRecursive(node: AccessibilityNodeInfo?) {
+        suspend fun findRecursive(node: AccessibilityNodeInfo?) {
             if (node == null) return // Base case
 
             // Use Compat wrapper for safe property access
@@ -333,7 +333,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
      * Runs on the Default dispatcher.
      */
     private suspend fun findFreshNode(targetNodeInfo: NodeInfo): AccessibilityNodeInfo? = withContext(Dispatchers.Default) {
-        if (!isActive) return@withContext null
+        if (!currentCoroutineContext().isActive) return@withContext null
         Log.v(TAG, "Attempting findFreshNode: ID=${targetNodeInfo.viewIdResourceName}, Class=${targetNodeInfo.className}")
         val root = rootInActiveWindow ?: return@withContext null // Need fresh root
 
@@ -368,7 +368,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
     /**
      * Recursive helper for findFreshNode (Strategy 2). Runs within caller's context.
      */
-    private fun findNodeRecursiveViaProperties(node: AccessibilityNodeInfo?, target: NodeInfo): AccessibilityNodeInfo? {
+    private suspend fun findNodeRecursiveViaProperties(node: AccessibilityNodeInfo?, target: NodeInfo): AccessibilityNodeInfo? {
         if (node == null || !isActive) return null // Base case and cancellation check
 
         // Wrap node for safe property access
@@ -414,7 +414,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
      * Recursively extracts all textual content from a node and its descendants.
      * Runs within the caller's context.
      */
-    private fun getAllTextFromNode(node: AccessibilityNodeInfo?): List<String> {
+    private suspend fun getAllTextFromNode(node: AccessibilityNodeInfo?): List<String> {
         if (node == null || !isActive) return emptyList() // Base case and cancellation check
 
         val texts = mutableListOf<String>()

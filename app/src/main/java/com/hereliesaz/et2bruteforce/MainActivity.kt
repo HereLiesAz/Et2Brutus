@@ -13,17 +13,24 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.et2bruteforce.services.BruteforceAccessibilityService
+import com.hereliesaz.et2bruteforce.comms.AccessibilityCommsManager
 import com.hereliesaz.et2bruteforce.services.FloatingControlService
 import com.hereliesaz.et2bruteforce.ui.theme.Et2BruteForceTheme
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var commsManager: AccessibilityCommsManager
 
     // ActivityResultLauncher for SYSTEM_ALERT_WINDOW permission
     private val overlayPermissionLauncher = registerForActivityResult(
@@ -44,6 +51,34 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Launcher for dictionary file selection
+        val dictionaryPickerLauncher = registerForActivityResult(
+            ActivityResultContracts.OpenDocument()
+        ) { uri: Uri? ->
+            uri?.let {
+                // Persist permission to read the file across device reboots
+                try {
+                    val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    contentResolver.takePersistableUriPermission(uri, takeFlags)
+                    lifecycleScope.launch {
+                        commsManager.reportDictionaryUri(uri)
+                    }
+                    Toast.makeText(this, "Dictionary selected.", Toast.LENGTH_SHORT).show()
+                } catch (e: SecurityException) {
+                    Log.e("MainActivity", "Failed to take persistable URI permission", e)
+                    Toast.makeText(this, "Error selecting dictionary.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        // Listen for requests to open the dictionary picker
+        lifecycleScope.launch {
+            commsManager.openDictionaryPickerRequest.collect {
+                dictionaryPickerLauncher.launch(arrayOf("*/*")) // Or specific MIME types
+            }
+        }
+
         setContent {
             Et2BruteForceTheme {
                 MainScreen(
