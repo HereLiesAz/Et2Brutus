@@ -11,6 +11,7 @@ import android.view.WindowManager
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
@@ -110,7 +111,10 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
                     onUpdateLength = viewModel::updateCharacterLength,
                     onUpdateCharset = viewModel::updateCharacterSet,
                     onUpdatePace = viewModel::updateAttemptPace,
-                    onToggleResume = viewModel::toggleResumeFromLast
+                    onToggleResume = viewModel::toggleResumeFromLast,
+                    onToggleSingleAttemptMode = viewModel::toggleSingleAttemptMode,
+                    onUpdateSuccessKeywords = viewModel::updateSuccessKeywords,
+                    onUpdateCaptchaKeywords = viewModel::updateCaptchaKeywords
                 )
             }
         }
