@@ -36,6 +36,10 @@ android {
         }
         debug {}
     }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
     kotlinOptions {
         jvmTarget = "17"
     }
@@ -107,6 +111,7 @@ dependencies {
 
     // Optional: Add desugaring dependency if enabling coreLibraryDesugaring
     coreLibraryDesugaring(libs.desugar.jdk.libs)
+
 }
 
 kapt {

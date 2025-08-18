@@ -8,6 +8,7 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -307,12 +308,13 @@ private fun MindMapOptionsMenu(
 
             items.forEachIndexed { index, item ->
                 val angleRad = Math.toRadians((angleStep * index - 90).toDouble()).toFloat()
-                MindMapNode(
-                    item = item,
-                    radius = radius * animationProgress,
-                    angleRad = angleRad,
-                    modifier = Modifier.align(Alignment.Center)
-                )
+                Box(modifier = Modifier.align(Alignment.Center)) {
+                    MindMapNode(
+                        item = item,
+                        radius = radius * animationProgress,
+                        angleRad = angleRad
+                    )
+                }
             }
         }
     }
@@ -397,7 +399,7 @@ private fun SettingsDialog(
                         it.toLongOrNull()?.let { pace -> onUpdatePace(pace) }
                     },
                     label = { Text("Pace (ms)") },
-                    keyboardOptions = androidx.compose.ui.text.input.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),

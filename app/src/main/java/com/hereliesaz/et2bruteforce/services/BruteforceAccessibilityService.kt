@@ -6,7 +6,7 @@ import android.graphics.Point
 import android.graphics.Rect
 import android.os.Bundle
 import android.util.Log
-import android.view.accessibility.AccessibilityEvent // <--- CONFIRM THIS IMPORT IS PRESENT
+import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import com.hereliesaz.et2bruteforce.comms.AccessibilityCommsManager
@@ -369,7 +369,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
      * Recursive helper for findFreshNode (Strategy 2). Runs within caller's context.
      */
     private fun findNodeRecursiveViaProperties(node: AccessibilityNodeInfo?, target: NodeInfo): AccessibilityNodeInfo? {
-        if (node == null || !isActive) return null // Base case and cancellation check
+        if (node == null) return null // Base case and cancellation check
 
         // Wrap node for safe property access
         val nodeCompat = AccessibilityNodeInfoCompat.wrap(node)
@@ -393,9 +393,6 @@ class BruteforceAccessibilityService : AccessibilityService() {
 
         // If not this node, recurse through children
         for (i in 0 until nodeCompat.childCount) {
-            if (!isActive) {
-                break // Check cancellation before recursing
-            }
             val child = nodeCompat.getChild(i)
             val foundInChild = findNodeRecursiveViaProperties(child?.unwrap(), target) // Recurse with original node
             if (foundInChild != null) {
@@ -415,7 +412,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
      * Runs within the caller's context.
      */
     private fun getAllTextFromNode(node: AccessibilityNodeInfo?): List<String> {
-        if (node == null || !isActive) return emptyList() // Base case and cancellation check
+        if (node == null) return emptyList() // Base case and cancellation check
 
         val texts = mutableListOf<String>()
         try {
@@ -427,7 +424,6 @@ class BruteforceAccessibilityService : AccessibilityService() {
 
             // Recurse through children
             for (i in 0 until node.childCount) {
-                if (!isActive) break // Check cancellation
                 val child = node.getChild(i)
                 texts.addAll(getAllTextFromNode(child)) // Add text from children
                 // child?.recycle() // Simplified: Omit recycling

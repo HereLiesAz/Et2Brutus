@@ -197,7 +197,7 @@ class BruteforceViewModel @Inject constructor(
                             Log.e(TAG, "Error in dictionary flow", e)
                             _uiState.update { it.copy(status = BruteforceStatus.DICTIONARY_LOAD_FAILED, errorMessage = "Dictionary Error: ${e.message}") }
                             // Stop on dictionary error
-                            this.coroutineContext.cancel() // Cancel the collector coroutine
+                            currentCoroutineContext().cancel() // Cancel the collector coroutine
                         }
                         .collect { (candidate, progress) ->
                             ensureActive() // Check if job was cancelled externally (e.g., user stop)
@@ -240,7 +240,7 @@ class BruteforceViewModel @Inject constructor(
                             Log.e(TAG, "Error in permutation flow", e)
                             updateStatus(BruteforceStatus.ERROR)
                             _uiState.update { it.copy(errorMessage = "Permutation Error: ${e.message}") }
-                            this.coroutineContext.cancel()
+                            currentCoroutineContext().cancel()
                         }
                         .collect { candidate ->
                             ensureActive()
@@ -299,18 +299,18 @@ class BruteforceViewModel @Inject constructor(
             AttemptResult.SUCCESS -> {
                 updateStatus(BruteforceStatus.SUCCESS_DETECTED)
                 _uiState.update { it.copy(successCandidate = candidate)}
-                coroutineContext.cancel() // Stop the current job
+                currentCoroutineContext().cancel() // Stop the current job
             }
             AttemptResult.CAPTCHA -> {
                 updateStatus(BruteforceStatus.CAPTCHA_DETECTED)
                 _uiState.update { it.copy(errorMessage = "CAPTCHA Detected!") }
-                coroutineContext.cancel() // Stop the current job
+                currentCoroutineContext().cancel() // Stop the current job
             }
             AttemptResult.POPUP_UNHANDLED -> {
                 // Pause, requiring user intervention
                 updateStatus(BruteforceStatus.PAUSED)
                 _uiState.update { it.copy(errorMessage = "Popup detected, configure popup button.")}
-                coroutineContext.cancel() // Stop the current job
+                currentCoroutineContext().cancel() // Stop the current job
             }
             AttemptResult.FAILURE -> {
                 // Wait before next attempt (pace is handled in settings now)
