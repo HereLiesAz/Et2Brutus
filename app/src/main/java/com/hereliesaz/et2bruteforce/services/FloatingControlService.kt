@@ -36,6 +36,7 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
 
     @Inject lateinit var windowManager: WindowManager
     @Inject lateinit var viewModel: BruteforceViewModel
+    @Inject lateinit var commsManager: AccessibilityCommsManager
 
     // --- View Management ---
     private val composeViews = mutableMapOf<Any, ComposeView>()
@@ -107,7 +108,11 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
                     onStart = viewModel::startBruteforce,
                     onPause = viewModel::pauseBruteforce,
                     onStop = viewModel::stopBruteforce,
-                    onSelectDictionary = { /* TODO */ },
+                    onSelectDictionary = {
+                        serviceScope.launch {
+                            commsManager.requestOpenDictionaryPicker()
+                        }
+                    },
                     onUpdateLength = viewModel::updateCharacterLength,
                     onUpdateCharset = viewModel::updateCharacterSet,
                     onUpdatePace = viewModel::updateAttemptPace,
