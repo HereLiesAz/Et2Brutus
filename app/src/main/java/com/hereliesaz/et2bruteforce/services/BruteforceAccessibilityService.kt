@@ -269,12 +269,12 @@ class BruteforceAccessibilityService : AccessibilityService() {
      * Returns a NodeInfo data object. Runs on the Default dispatcher.
      */
     private suspend fun findNodeAt(screenX: Int, screenY: Int, filter: (AccessibilityNodeInfo) -> Boolean): NodeInfo? = withContext(Dispatchers.Default) {
-        if (!isActive) return@withContext null // Check if coroutine is active
+        if (!coroutineContext.isActive) return@withContext null // Check if coroutine is active
         val root = rootInActiveWindow ?: return@withContext null // Get fresh root node
         val nearbyNodes = mutableListOf<Pair<AccessibilityNodeInfo, Int>>()
 
         // Inner recursive function - runs within the withContext(Default) scope
-        suspend fun findRecursive(node: AccessibilityNodeInfo?) {
+        fun findRecursive(node: AccessibilityNodeInfo?) {
             if (node == null) return // Base case
 
             // Use Compat wrapper for safe property access
@@ -294,7 +294,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
 
             // Recurse through children
             for (i in 0 until nodeCompat.childCount) {
-                if (!isActive) break // Check cancellation before recursing further
+                if (!coroutineContext.isActive) break // Check cancellation before recursing further
                 val child = nodeCompat.getChild(i)
                 findRecursive(child?.unwrap()) // Recurse with original node
                 // child?.recycle() // Simplified: Omit recycling
@@ -333,7 +333,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
      * Runs on the Default dispatcher.
      */
     private suspend fun findFreshNode(targetNodeInfo: NodeInfo): AccessibilityNodeInfo? = withContext(Dispatchers.Default) {
-        if (!currentCoroutineContext().isActive) return@withContext null
+        if (!coroutineContext.isActive) return@withContext null
         Log.v(TAG, "Attempting findFreshNode: ID=${targetNodeInfo.viewIdResourceName}, Class=${targetNodeInfo.className}")
         val root = rootInActiveWindow ?: return@withContext null // Need fresh root
 
@@ -368,8 +368,8 @@ class BruteforceAccessibilityService : AccessibilityService() {
     /**
      * Recursive helper for findFreshNode (Strategy 2). Runs within caller's context.
      */
-    private suspend fun findNodeRecursiveViaProperties(node: AccessibilityNodeInfo?, target: NodeInfo): AccessibilityNodeInfo? {
-        if (node == null || !isActive) return null // Base case and cancellation check
+    private fun findNodeRecursiveViaProperties(node: AccessibilityNodeInfo?, target: NodeInfo): AccessibilityNodeInfo? {
+        if (node == null || !serviceScope.isActive) return null // Base case and cancellation check
 
         // Wrap node for safe property access
         val nodeCompat = AccessibilityNodeInfoCompat.wrap(node)
@@ -393,7 +393,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
 
         // If not this node, recurse through children
         for (i in 0 until nodeCompat.childCount) {
-            if (!isActive) {
+            if (!serviceScope.isActive) {
                 break // Check cancellation before recursing
             }
             val child = nodeCompat.getChild(i)
@@ -414,8 +414,8 @@ class BruteforceAccessibilityService : AccessibilityService() {
      * Recursively extracts all textual content from a node and its descendants.
      * Runs within the caller's context.
      */
-    private suspend fun getAllTextFromNode(node: AccessibilityNodeInfo?): List<String> {
-        if (node == null || !isActive) return emptyList() // Base case and cancellation check
+    private fun getAllTextFromNode(node: AccessibilityNodeInfo?): List<String> {
+        if (node == null || !serviceScope.isActive) return emptyList() // Base case and cancellation check
 
         val texts = mutableListOf<String>()
         try {
@@ -427,7 +427,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
 
             // Recurse through children
             for (i in 0 until node.childCount) {
-                if (!isActive) break // Check cancellation
+                if (!serviceScope.isActive) break // Check cancellation
                 val child = node.getChild(i)
                 texts.addAll(getAllTextFromNode(child)) // Add text from children
                 // child?.recycle() // Simplified: Omit recycling
@@ -461,7 +461,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
 
             // Set the event types the service should listen for
             // Use AccessibilityEvent.TYPE_ALL_MASK for all event types
-            eventTypes = AccessibilityEvent.TYPE_ALL_MASK // <-- Correct constant usage
+            eventTypes = -1 // AccessibilityEvent.TYPE_ALL_MASK // <-- Correct constant usage
 
             // Optional: Set other properties like feedback type, timeout, package names
             // feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC

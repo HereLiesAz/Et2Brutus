@@ -51,13 +51,6 @@ class BruteforceViewModel @Inject constructor(
                 handleNodeIdentificationResult(event)
             }
             .launchIn(viewModelScope)
-
-        commsManager.dictionaryUriResult
-            .onEach { uri ->
-                Log.d(TAG, "Received dictionary URI: $uri")
-                updateDictionaryUri(uri)
-            }
-            .launchIn(viewModelScope)
         // No need for active listeners for ActionCompleted or AnalysisResult here
         // as the bruteforce loop handles them via requestAndWaitForEvent
     }
@@ -204,7 +197,7 @@ class BruteforceViewModel @Inject constructor(
                             Log.e(TAG, "Error in dictionary flow", e)
                             _uiState.update { it.copy(status = BruteforceStatus.DICTIONARY_LOAD_FAILED, errorMessage = "Dictionary Error: ${e.message}") }
                             // Stop on dictionary error
-                            cancel() // Cancel the collector coroutine
+                            bruteforceJob?.cancel() // Cancel the collector coroutine
                         }
                         .collect { (candidate, progress) ->
                             ensureActive() // Check if job was cancelled externally (e.g., user stop)
@@ -247,7 +240,7 @@ class BruteforceViewModel @Inject constructor(
                             Log.e(TAG, "Error in permutation flow", e)
                             updateStatus(BruteforceStatus.ERROR)
                             _uiState.update { it.copy(errorMessage = "Permutation Error: ${e.message}") }
-                            cancel()
+                            bruteforceJob?.cancel()
                         }
                         .collect { candidate ->
                             ensureActive()
@@ -306,18 +299,18 @@ class BruteforceViewModel @Inject constructor(
             AttemptResult.SUCCESS -> {
                 updateStatus(BruteforceStatus.SUCCESS_DETECTED)
                 _uiState.update { it.copy(successCandidate = candidate)}
-                coroutineContext.cancel() // Stop the current job
+                bruteforceJob?.cancel() // Stop the current job
             }
             AttemptResult.CAPTCHA -> {
                 updateStatus(BruteforceStatus.CAPTCHA_DETECTED)
                 _uiState.update { it.copy(errorMessage = "CAPTCHA Detected!") }
-                coroutineContext.cancel() // Stop the current job
+                bruteforceJob?.cancel() // Stop the current job
             }
             AttemptResult.POPUP_UNHANDLED -> {
                 // Pause, requiring user intervention
                 updateStatus(BruteforceStatus.PAUSED)
                 _uiState.update { it.copy(errorMessage = "Popup detected, configure popup button.")}
-                coroutineContext.cancel() // Stop the current job
+                bruteforceJob?.cancel() // Stop the current job
             }
             AttemptResult.FAILURE -> {
                 // Wait before next attempt (pace is handled in settings now)
@@ -376,8 +369,8 @@ class BruteforceViewModel @Inject constructor(
 
                 // 5. Handle Result
                 when (analysisResult) {
-                    ScreenAnalysisResult.SuccessDetected -> if (continuation.context.isActive) continuation.resume(AttemptResult.SUCCESS)
-                    ScreenAnalysisResult.CaptchaDetected -> if (continuation.context.isActive) continuation.resume(AttemptResult.CAPTCHA)
+                    ScreenAnalysisResult.SuccessDetected -> if (isActive) continuation.resume(AttemptResult.SUCCESS)
+                    ScreenAnalysisResult.CaptchaDetected -> if (isActive) continuation.resume(AttemptResult.CAPTCHA)
                     ScreenAnalysisResult.Unknown -> {
                         if (popupNode != null) {
                             popupRequestId = generateRequestId()
@@ -388,14 +381,14 @@ class BruteforceViewModel @Inject constructor(
                             if (clickPopupSuccess) {
                                 Log.d(TAG, "Clicked popup successfully. Assuming failure for this cycle.")
                                 delay(200) // Small delay after clicking popup
-                                if (continuation.context.isActive) continuation.resume(AttemptResult.FAILURE)
+                                if (isActive) continuation.resume(AttemptResult.FAILURE)
                             } else {
                                 Log.w(TAG, "Failed to click configured popup. Pausing.")
-                                if (continuation.context.isActive) continuation.resume(AttemptResult.POPUP_UNHANDLED)
+                                if (isActive) continuation.resume(AttemptResult.POPUP_UNHANDLED)
                             }
                         } else {
                             // No popup configured, assume standard failure
-                            if (continuation.context.isActive) continuation.resume(AttemptResult.FAILURE)
+                            if (isActive) continuation.resume(AttemptResult.FAILURE)
                         }
                     }
                 }
@@ -404,7 +397,7 @@ class BruteforceViewModel @Inject constructor(
                 // Don't resume continuation if cancelled
             } catch (e: Exception) {
                 Log.e(TAG, "Error within performSingleAttempt coroutine: ${e.message}")
-                if (continuation.context.isActive) {
+                if (isActive) {
                     continuation.resume(AttemptResult.FAILURE) // Resume with failure on unexpected error
                 }
             } finally {

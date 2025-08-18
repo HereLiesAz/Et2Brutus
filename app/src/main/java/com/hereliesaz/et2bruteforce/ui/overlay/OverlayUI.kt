@@ -17,10 +17,9 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.graphicsLayer
-import androidx.compose.ui.draw.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -28,7 +27,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -308,50 +307,33 @@ private fun MindMapOptionsMenu(
                 }
             }
 
-            items.forEachIndexed { index, item ->
+            for ((index, item) in items.withIndex()) {
                 val angleRad = Math.toRadians((angleStep * index - 90).toDouble()).toFloat()
-                Box(modifier = Modifier.align(Alignment.Center)) {
-                    MindMapNode(
-                        item = item,
-                        radius = radius * animationProgress,
-                        angleRad = angleRad
+                val density = LocalDensity.current
+                val xOffset = with(density) { (radius.toPx() * cos(angleRad)).toDp() }
+                val yOffset = with(density) { (radius.toPx() * sin(angleRad)).toDp() }
+
+                Column(
+                    modifier = Modifier.align(Alignment.Center).offset(x = xOffset, y = yOffset),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    FloatingActionButton(
+                        onClick = { if (item.enabled) item.onClick() },
+                        shape = CircleShape,
+                        modifier = Modifier.size(40.dp),
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Icon(item.icon, contentDescription = item.text, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                    }
+                    Text(
+                        text = item.text,
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun MindMapNode(
-    item: MindMapActionItem,
-    radius: Dp,
-    angleRad: Float,
-    modifier: Modifier = Modifier
-) {
-    val density = LocalDensity.current
-    val xOffset = with(density) { (radius.toPx() * cos(angleRad)).toDp() }
-    val yOffset = with(density) { (radius.toPx() * sin(angleRad)).toDp() }
-
-    Column(
-        modifier = modifier.offset(x = xOffset, y = yOffset),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        FloatingActionButton(
-            onClick = item.onClick,
-            enabled = item.enabled,
-            shape = CircleShape,
-            modifier = Modifier.size(40.dp),
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
-        ) {
-            Icon(item.icon, contentDescription = item.text, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-        }
-        Text(
-            text = item.text,
-            fontSize = 10.sp,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(top = 4.dp)
-        )
     }
 }
 
@@ -401,7 +383,7 @@ private fun SettingsDialog(
                         it.toLongOrNull()?.let { pace -> onUpdatePace(pace) }
                     },
                     label = { Text("Pace (ms)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
