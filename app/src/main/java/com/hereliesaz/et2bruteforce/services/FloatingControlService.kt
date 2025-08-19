@@ -93,7 +93,7 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
 
     private fun createOverlayViews() {
         // Create Main Controller
-        createAndAddView(MAIN_CONTROLLER_KEY, Point(100, 300))
+        createAndAddView(MAIN_CONTROLLER_KEY, viewModel.uiState.value.settings.controllerPosition)
 
         // Create Draggable Config Buttons
         NodeType.values().forEach { nodeType ->

@@ -10,4 +10,26 @@
         2. Press (Ctrl + G) on a physical keyboard to show/hide the floating controller.\n\n
         3. Use the floating controller to record and play back taps. (Functionality in development).
     </string>
+    <string name="title_activity_instruction">Instructions</string>
+    <string name="detailed_instructions">
+        "Welcome to Screen Bruteforcer! Here's how to get started:\n\n"
+        "1. Grant Permissions:\n"
+        "   - The app needs two permissions to work. Please grant both 'Draw Over Other Apps' and 'Accessibility Service' on the main screen.\n\n"
+        "2. The Floating Button:\n"
+        "   - Press (Ctrl + G) on a physical keyboard to show or hide the main floating button.\n"
+        "   - You can drag this button anywhere on the screen. The app will remember its position.\n\n"
+        "3. Using the Menu:\n"
+        "   - Tap the floating button to open the menu.\n"
+        "   - 'Start': Begins the bruteforce process.\n"
+        "   - 'Pause': Pauses the current process.\n"
+        "   - 'Stop': Stops the process and resets.\n"
+        "   - 'Dictionary': Select a dictionary file for the bruteforce.\n"
+        "   - 'Settings': Configure advanced options like password length and character set.\n\n"
+        "4. Identifying UI Elements:\n"
+        "   - To tell the app where to type and what to click, you need to position the smaller config buttons.\n"
+        "   - 'Input': Drag this button over the text field where the app should type (e.g., a password field).\n"
+        "   - 'Submit': Drag this over the button that submits the form (e.g., a 'Login' or 'Go' button).\n"
+        "   - 'Popup': If a popup appears after a failed attempt (e.g., 'Incorrect password'), drag this over the button that closes the popup (e.g., an 'OK' button).\n"
+        "   - When a button has successfully identified a UI element, it will change color."
+    </string>
 </resources>
