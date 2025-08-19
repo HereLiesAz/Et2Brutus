@@ -11,6 +11,7 @@ import android.view.WindowManager
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.*
+import androidx.lifecycle.HasDefaultViewModelProviderFactory
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
@@ -61,7 +62,8 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
 
     override fun onCreate() {
         super.onCreate()
-        viewModel = ViewModelProvider(this)[BruteforceViewModel::class.java]
+        val factory = (application as HasDefaultViewModelProviderFactory).defaultViewModelProviderFactory
+        viewModel = ViewModelProvider(this, factory)[BruteforceViewModel::class.java]
         savedStateRegistryController.performRestore(null)
         Log.d(TAG, "onCreate")
 
