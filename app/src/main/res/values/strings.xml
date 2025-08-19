@@ -4,4 +4,10 @@
 
         <string name="accessibility_service_label">Screen Bruteforcer Service</string>
         <string name="accessibility_service_description">Allows Screen Bruteforcer to interact with UI elements on screen for automated input.</string> <!-- Used in config xml -->
+    <string name="instructions_label">Instructions</string>
+    <string name="instructions_text">
+        1. Grant both \'Draw Over Other Apps\' and \'Accessibility Service\' permissions above.\n\n
+        2. Press (Ctrl + G) on a physical keyboard to show/hide the floating controller.\n\n
+        3. Use the floating controller to record and play back taps. (Functionality in development).
+    </string>
 </resources>
