@@ -11,15 +11,16 @@ import android.view.WindowManager
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.*
-import androidx.lifecycle.HasDefaultViewModelProviderFactory
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.hereliesaz.et2bruteforce.comms.AccessibilityCommsManager
+import com.hereliesaz.et2bruteforce.data.SettingsRepository
+import com.hereliesaz.et2bruteforce.domain.BruteforceEngine
 import com.hereliesaz.et2bruteforce.model.NodeType
 import com.hereliesaz.et2bruteforce.ui.overlay.RootOverlay
-import com.hereliesaz.et2bruteforce.comms.AccessibilityCommsManager
 import com.hereliesaz.et2bruteforce.viewmodel.BruteforceViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -38,8 +39,10 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
     }
 
     @Inject lateinit var windowManager: WindowManager
-    private lateinit var viewModel: BruteforceViewModel
+    @Inject lateinit var settingsRepository: SettingsRepository
+    @Inject lateinit var bruteforceEngine: BruteforceEngine
     @Inject lateinit var commsManager: AccessibilityCommsManager
+    private lateinit var viewModel: BruteforceViewModel
 
     // --- View Management ---
     private val composeViews = mutableMapOf<Any, ComposeView>()
@@ -62,7 +65,15 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
 
     override fun onCreate() {
         super.onCreate()
-        val factory = (application as HasDefaultViewModelProviderFactory).defaultViewModelProviderFactory
+        val factory = object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                if (modelClass.isAssignableFrom(BruteforceViewModel::class.java)) {
+                    @Suppress("UNCHECKED_CAST")
+                    return BruteforceViewModel(settingsRepository, bruteforceEngine, commsManager) as T
+                }
+                throw IllegalArgumentException("Unknown ViewModel class")
+            }
+        }
         viewModel = ViewModelProvider(this, factory)[BruteforceViewModel::class.java]
         savedStateRegistryController.performRestore(null)
         Log.d(TAG, "onCreate")
