@@ -281,6 +281,7 @@ private fun MindMapOptionsMenu(
     )
 
     if (animationProgress > 0f) {
+        val primaryColor = MaterialTheme.colorScheme.primary // Read color here
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -298,7 +299,7 @@ private fun MindMapOptionsMenu(
                         y = center.y + (radius.toPx() * animationProgress) * sin(angleRad)
                     )
                     drawLine(
-                        color = MaterialTheme.colorScheme.primary,
+                        color = primaryColor, // Use the variable here
                         start = center,
                         end = nodeCenter,
                         strokeWidth = 2.dp.toPx() * animationProgress,

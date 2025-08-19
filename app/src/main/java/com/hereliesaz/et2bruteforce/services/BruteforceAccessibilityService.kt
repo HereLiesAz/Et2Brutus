@@ -443,34 +443,13 @@ class BruteforceAccessibilityService : AccessibilityService() {
 
     // --- Service Configuration Helper ---
     private fun configureServiceInfo() {
-        // Attempt to get the current service info
-        val currentInfo = this.serviceInfo
-        if (currentInfo == null) {
-            Log.e(TAG, "configureServiceInfo: serviceInfo is NULL. Cannot configure.")
-            // This is unexpected, might indicate a service binding issue.
-            // Consider stopping the service or throwing an error if this happens.
-            return
-        }
-
-        // Apply desired flags and event types
+        val currentInfo = this.serviceInfo ?: return
         currentInfo.apply {
-            // Ensure necessary flags are added (using bitwise OR)
             flags = flags or AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
                     AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS or
                     AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
-
-            // Set the event types the service should listen for
-            // Use AccessibilityEvent.TYPE_ALL_MASK for all event types
-            eventTypes = AccessibilityEvent.TYPE_ALL_MASK
-
-            // Optional: Set other properties like feedback type, timeout, package names
-            // feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
-            // notificationTimeout = 100 // milliseconds
-            // packageNames = arrayOf("com.example.targetapp") // Limit to specific app(s)
-
-            Log.d(TAG,"ServiceInfo configured programmatically (Flags=${flags.toString(16)}, EventTypes=${AccessibilityEvent.eventTypeToString(eventTypes)})")
+            eventTypes = AccessibilityEvent.TYPES_ALL_MASK
         }
-        // Set the modified info back to the service
         this.serviceInfo = currentInfo
     }
 }
