@@ -1,21 +1,19 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.hilt.android)
-    // id("org.jetbrains.kotlin.plugin.serialization") // Keep commented if not used
+    alias(libs.plugins.ksp) // <-- RE-ADDED THIS CRITICAL PLUGIN
+    alias(libs.plugins.kotlin.compose)
 }
 
 android {
     namespace = "com.hereliesaz.et2bruteforce"
-    // *** UPDATED compileSdk ***
-    compileSdk = 36 // <-- Changed from 34 to 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.hereliesaz.et2bruteforce"
         minSdk = 26
-        // *** UPDATED targetSdk ***
-        targetSdk = 36 // <-- Changed from 34 to 35 (match compileSdk)
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -45,9 +43,6 @@ android {
     buildFeatures {
         compose = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.11"
-    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -62,21 +57,19 @@ android {
 dependencies {
 
     // Core Android & Kotlin
-    // *** UPDATED core-ktx version based on error message ***
-    implementation(libs.androidx.core.ktx) // <-- Use the version required
-    implementation(libs.androidx.appcompat) // Keep as is unless required otherwise
-    implementation(libs.material) // Keep as is
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
 
     // Lifecycle
-    implementation(libs.androidx.lifecycle.runtime.ktx) // Keep stable version
+    implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.service)
 
     // Activity Compose
-    // *** UPDATED activity-compose version based on error message ***
-    implementation(libs.androidx.activity.compose) // <-- Use the version required
+    implementation(libs.androidx.activity.compose)
 
     // Jetpack Compose (BOM ensures compatible versions)
     implementation(platform(libs.androidx.compose.bom))
@@ -90,18 +83,18 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
 
     // Coroutines
-    implementation(libs.kotlinx.coroutines.core) // Keep stable version
+    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
 
     // Hilt
-    implementation(libs.hilt.android) // Keep stable version
-    kapt(libs.hilt.compiler)
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
 
     // DataStore
-    implementation(libs.androidx.datastore.preferences) // Keep stable version
+    implementation(libs.androidx.datastore.preferences)
 
     // SavedState
-    implementation(libs.androidx.savedstate.ktx) // Keep stable version
+    implementation(libs.androidx.savedstate.ktx)
     implementation(libs.androidx.compose.runtime.saveable)
 
     // Testing Dependencies
@@ -113,9 +106,4 @@ dependencies {
 
     // Optional: Add desugaring dependency if enabling coreLibraryDesugaring
     coreLibraryDesugaring(libs.desugar.jdk.libs)
-
-}
-
-kapt {
-    correctErrorTypes = true
 }

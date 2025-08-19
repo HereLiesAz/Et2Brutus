@@ -1,8 +1,8 @@
-package com.hereliesaz.et2bruteforce.core
+package com.hereliesaz.et2bruteforce
 
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
-class MyApp : Application() {
+class BruteforceApplication : Application() {
 }

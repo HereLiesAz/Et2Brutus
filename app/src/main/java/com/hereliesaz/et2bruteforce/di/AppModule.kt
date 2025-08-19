@@ -2,7 +2,6 @@ package com.hereliesaz.et2bruteforce.di
 
 import android.content.Context
 import android.view.WindowManager
-import com.hereliesaz.et2bruteforce.comms.AccessibilityCommsManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -14,13 +13,6 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    @Provides
-    @Singleton
-    fun provideAccessibilityCommsManager(): AccessibilityCommsManager {
-        return AccessibilityCommsManager()
-    }
-
-    // Provide WindowManager system service via Hilt
     @Provides
     @Singleton
     fun provideWindowManager(@ApplicationContext context: Context): WindowManager {

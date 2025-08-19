@@ -6,7 +6,7 @@ import android.graphics.Point
 import android.graphics.Rect
 import android.os.Bundle
 import android.util.Log
-import android.view.accessibility.AccessibilityEvent // <--- CONFIRM THIS IMPORT IS PRESENT
+import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import com.hereliesaz.et2bruteforce.comms.AccessibilityCommsManager
@@ -461,7 +461,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
 
             // Set the event types the service should listen for
             // Use AccessibilityEvent.TYPE_ALL_MASK for all event types
-            eventTypes = -1 // AccessibilityEvent.TYPE_ALL_MASK // <-- Correct constant usage
+            eventTypes = AccessibilityEvent.TYPE_ALL_MASK
 
             // Optional: Set other properties like feedback type, timeout, package names
             // feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
