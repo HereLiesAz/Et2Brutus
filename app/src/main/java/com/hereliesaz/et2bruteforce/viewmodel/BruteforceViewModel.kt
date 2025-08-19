@@ -137,15 +137,22 @@ class BruteforceViewModel @Inject constructor(
 
     // --- New Action Request Methods ---
     fun updateButtonPosition(viewKey: Any, newPosition: Point) {
-        if (viewKey !is NodeType) return // Only handle config buttons
-
-        _uiState.update { currentState ->
-            val newConfigs = currentState.buttonConfigs.toMutableMap()
-            val existingConfig = newConfigs[viewKey]
-            if (existingConfig != null) {
-                newConfigs[viewKey] = existingConfig.copy(position = newPosition)
+        when (viewKey) {
+            is NodeType -> {
+                _uiState.update { currentState ->
+                    val newConfigs = currentState.buttonConfigs.toMutableMap()
+                    val existingConfig = newConfigs[viewKey]
+                    if (existingConfig != null) {
+                        newConfigs[viewKey] = existingConfig.copy(position = newPosition)
+                    }
+                    currentState.copy(buttonConfigs = newConfigs)
+                }
             }
-            currentState.copy(buttonConfigs = newConfigs)
+            is String -> { // Assuming MAIN_CONTROLLER_KEY is a String
+                viewModelScope.launch {
+                    settingsRepository.updateControllerPosition(newPosition)
+                }
+            }
         }
     }
 

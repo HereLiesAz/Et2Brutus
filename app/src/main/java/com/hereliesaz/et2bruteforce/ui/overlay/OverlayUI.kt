@@ -1,6 +1,7 @@
 package com.hereliesaz.et2bruteforce.ui.overlay
 
 import android.graphics.Point
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -26,6 +27,7 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
@@ -34,8 +36,10 @@ import androidx.compose.ui.unit.sp
 import com.hereliesaz.et2bruteforce.model.BruteforceState
 import com.hereliesaz.et2bruteforce.model.BruteforceStatus
 import com.hereliesaz.et2bruteforce.model.CharacterSetType
+import com.hereliesaz.et2bruteforce.R
 import com.hereliesaz.et2bruteforce.model.NodeType
 import com.hereliesaz.et2bruteforce.services.FloatingControlService.Companion.MAIN_CONTROLLER_KEY
+import com.hereliesaz.et2bruteforce.ui.theme.*
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
@@ -103,7 +107,6 @@ fun MainControllerUi(
     onUpdateSuccessKeywords: (List<String>) -> Unit,
     onUpdateCaptchaKeywords: (List<String>) -> Unit
 ) {
-    var showOptionsMenu by rememberSaveable { mutableStateOf(false) }
     var showSettingsDialog by rememberSaveable { mutableStateOf(false) }
     val fabSize = 56.dp
 
@@ -111,9 +114,14 @@ fun MainControllerUi(
         modifier = Modifier
             .wrapContentSize()
             .padding(fabSize / 2)
+            .pointerInput(Unit) {
+                detectDragGestures { change, dragAmount ->
+                    change.consume()
+                    onDrag(dragAmount.x, dragAmount.y)
+                }
+            }
     ) {
-        MindMapOptionsMenu(
-            isVisible = showOptionsMenu,
+        ExpandableFabMenu(
             uiState = uiState,
             onStart = onStart,
             onPause = onPause,
@@ -121,31 +129,6 @@ fun MainControllerUi(
             onShowSettings = { showSettingsDialog = true },
             onSelectDictionary = onSelectDictionary
         )
-
-        FloatingActionButton(
-            onClick = { showOptionsMenu = !showOptionsMenu },
-            shape = CircleShape,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .size(fabSize)
-                .pointerInput(Unit) {
-                    detectDragGestures { change, dragAmount ->
-                        change.consume()
-                        onDrag(dragAmount.x, dragAmount.y)
-                    }
-                }
-        ) {
-            val icon = when {
-                showOptionsMenu -> Icons.Default.Close
-                uiState.status == BruteforceStatus.RUNNING -> Icons.Default.Pause
-                uiState.status == BruteforceStatus.PAUSED || uiState.status == BruteforceStatus.READY -> Icons.Default.PlayArrow
-                uiState.status == BruteforceStatus.SUCCESS_DETECTED -> Icons.Default.CheckCircle
-                uiState.status == BruteforceStatus.CAPTCHA_DETECTED -> Icons.Default.Security
-                uiState.status == BruteforceStatus.ERROR || uiState.status == BruteforceStatus.DICTIONARY_LOAD_FAILED -> Icons.Default.Error
-                else -> Icons.Default.Menu
-            }
-            Icon(icon, contentDescription = "Main Action Button")
-        }
 
         if (showSettingsDialog) {
             SettingsDialog(
@@ -201,11 +184,17 @@ fun ConfigButtonUi(
                         }
                     )
                 },
-            containerColor = if (isIdentified) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
+            containerColor = if (isIdentified) {
+                when (nodeType) {
+                    NodeType.INPUT -> ButtonColor1
+                    NodeType.SUBMIT -> ButtonColor2
+                    NodeType.POPUP -> ButtonColor3
+                }
+            } else MaterialTheme.colorScheme.secondaryContainer
         ) {
             val icon = when (nodeType) {
-                NodeType.INPUT -> Icons.Default.Keyboard
-                NodeType.SUBMIT -> Icons.Default.Send
+                NodeType.INPUT -> Icons.Default.TextFields
+                NodeType.SUBMIT -> Icons.Default.ArrowForward
                 NodeType.POPUP -> Icons.Default.Warning
             }
             Icon(icon, contentDescription = "$nodeType Button")
@@ -231,8 +220,7 @@ private data class MindMapActionItem(
 )
 
 @Composable
-private fun MindMapOptionsMenu(
-    isVisible: Boolean,
+private fun ExpandableFabMenu(
     uiState: BruteforceState,
     onStart: () -> Unit,
     onPause: () -> Unit,
@@ -240,6 +228,7 @@ private fun MindMapOptionsMenu(
     onShowSettings: () -> Unit,
     onSelectDictionary: () -> Unit
 ) {
+    var isExpanded by remember { mutableStateOf(false) }
     val status = uiState.status
 
     val items = remember(status) {
@@ -275,65 +264,48 @@ private fun MindMapOptionsMenu(
         )
     }
 
-    val animationProgress by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0f,
-        animationSpec = tween(durationMillis = 300)
-    )
-
-    if (animationProgress > 0f) {
-        val primaryColor = MaterialTheme.colorScheme.primary // Read color here
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer(alpha = animationProgress)
-        ) {
-            val radius = 90.dp
-            val angleStep = 360f / items.size
-
-            Canvas(modifier = Modifier.matchParentSize()) {
-                val center = androidx.compose.ui.geometry.Offset(size.width / 2, size.height / 2)
-                items.forEachIndexed { index, _ ->
-                    val angleRad = Math.toRadians((angleStep * index - 90).toDouble()).toFloat()
-                    val nodeCenter = androidx.compose.ui.geometry.Offset(
-                        x = center.x + (radius.toPx() * animationProgress) * cos(angleRad),
-                        y = center.y + (radius.toPx() * animationProgress) * sin(angleRad)
-                    )
-                    drawLine(
-                        color = primaryColor, // Use the variable here
-                        start = center,
-                        end = nodeCenter,
-                        strokeWidth = 2.dp.toPx() * animationProgress,
-                        cap = StrokeCap.Round
-                    )
-                }
-            }
-
-            for ((index, item) in items.withIndex()) {
-                val angleRad = Math.toRadians((angleStep * index - 90).toDouble()).toFloat()
-                val density = LocalDensity.current
-                val xOffset = with(density) { (radius.toPx() * cos(angleRad)).toDp() }
-                val yOffset = with(density) { (radius.toPx() * sin(angleRad)).toDp() }
-
-                Column(
-                    modifier = Modifier.align(Alignment.Center).offset(x = xOffset, y = yOffset),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    FloatingActionButton(
-                        onClick = { if (item.enabled) item.onClick() },
-                        shape = CircleShape,
-                        modifier = Modifier.size(40.dp),
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    ) {
-                        Icon(item.icon, contentDescription = item.text, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+    Box(contentAlignment = Alignment.BottomEnd) {
+        AnimatedVisibility(visible = isExpanded) {
+            Column(
+                modifier = Modifier.padding(bottom = 64.dp), // fab size (56) + spacing (8)
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items.forEachIndexed { index, item ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = item.text,
+                            modifier = Modifier.padding(end = 8.dp),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        FloatingActionButton(
+                            onClick = { if (item.enabled) item.onClick() },
+                            shape = CircleShape,
+                            modifier = Modifier.size(40.dp),
+                            containerColor = when (index) {
+                                0 -> ButtonColor1
+                                1 -> ButtonColor2
+                                2 -> ButtonColor3
+                                3 -> ButtonColor4
+                                4 -> ButtonColor5
+                                else -> MaterialTheme.colorScheme.secondaryContainer
+                            }
+                        ) {
+                            Icon(item.icon, contentDescription = item.text, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                        }
                     }
-                    Text(
-                        text = item.text,
-                        fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
                 }
             }
+        }
+        FloatingActionButton(
+            onClick = { isExpanded = !isExpanded },
+            shape = CircleShape,
+        ) {
+            Icon(
+                painter = painterResource(id = com.hereliesaz.et2bruteforce.R.drawable.ic_launcher_foreground),
+                contentDescription = "App Icon",
+                modifier = Modifier.size(56.dp)
+            )
         }
     }
 }
