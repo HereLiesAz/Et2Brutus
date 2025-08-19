@@ -5,9 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -133,7 +131,7 @@ fun MainControllerUi(
         )
 
         if (showSettingsDialog) {
-            CustomSettingsDialog(
+            SettingsDialog(
                 uiState = uiState,
                 onUpdateLength = onUpdateLength,
                 onUpdateCharset = onUpdateCharset,
@@ -266,9 +264,13 @@ private fun ExpandableFabMenu(
         )
     }
 
-    Column(horizontalAlignment = Alignment.End) {
+    Box(contentAlignment = Alignment.BottomEnd) {
         AnimatedVisibility(visible = isExpanded) {
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.padding(bottom = 64.dp), // fab size (56) + spacing (8)
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 items.forEachIndexed { index, item ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
@@ -293,7 +295,6 @@ private fun ExpandableFabMenu(
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
             }
         }
         FloatingActionButton(
@@ -310,7 +311,7 @@ private fun ExpandableFabMenu(
 }
 
 @Composable
-private fun CustomSettingsDialog(
+private fun SettingsDialog(
     uiState: BruteforceState,
     onUpdateLength: (Int) -> Unit,
     onUpdateCharset: (CharacterSetType) -> Unit,
@@ -322,124 +323,100 @@ private fun CustomSettingsDialog(
     onDismiss: () -> Unit
 ) {
     val settings = uiState.settings
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Advanced Settings") },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text("Length: ${settings.characterLength}", style = MaterialTheme.typography.bodyMedium)
+                Slider(
+                    value = settings.characterLength.toFloat(),
+                    onValueChange = { onUpdateLength(it.roundToInt()) },
+                    valueRange = 1f..12f,
+                    steps = 10
+                )
+                Spacer(modifier = Modifier.height(8.dp))
 
-    // Full-screen box to act as a scrim, consuming touch events
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.6f))
-            .pointerInput(Unit) {
-                detectTapGestures {
-                    // Consume taps to prevent interaction with elements underneath
+                Text("Character Set:", style = MaterialTheme.typography.bodyMedium)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                    CharacterSetChip(CharacterSetType.LETTERS, settings.characterSetType, onUpdateCharset)
+                    CharacterSetChip(CharacterSetType.NUMBERS, settings.characterSetType, onUpdateCharset)
                 }
-            },
-        contentAlignment = Alignment.Center
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .heightIn(max = 500.dp) // Set a max height for scrollability
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Advanced Settings", style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Scrollable content area
-                Column(modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
-                    Text("Length: ${settings.characterLength}", style = MaterialTheme.typography.bodyMedium)
-                    Slider(
-                        value = settings.characterLength.toFloat(),
-                        onValueChange = { onUpdateLength(it.roundToInt()) },
-                        valueRange = 1f..12f,
-                        steps = 10
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text("Character Set:", style = MaterialTheme.typography.bodyMedium)
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                        CharacterSetChip(CharacterSetType.LETTERS, settings.characterSetType, onUpdateCharset)
-                        CharacterSetChip(CharacterSetType.NUMBERS, settings.characterSetType, onUpdateCharset)
-                    }
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                        CharacterSetChip(CharacterSetType.LETTERS_NUMBERS, settings.characterSetType, onUpdateCharset)
-                        CharacterSetChip(CharacterSetType.ALPHANUMERIC_SPECIAL, settings.characterSetType, onUpdateCharset)
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    var paceText by remember(settings.attemptPaceMillis) { mutableStateOf(settings.attemptPaceMillis.toString()) }
-                    OutlinedTextField(
-                        value = paceText,
-                        onValueChange = {
-                            paceText = it
-                            it.toLongOrNull()?.let { pace -> onUpdatePace(pace) }
-                        },
-                        label = { Text("Pace (ms)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
-                        leadingIcon = { Icon(Icons.Default.Timer, null) }
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Switch(
-                            checked = settings.resumeFromLast,
-                            onCheckedChange = onToggleResume
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Resume from last attempt", style = MaterialTheme.typography.bodyMedium)
-                    }
-                    if (settings.resumeFromLast && settings.lastAttempt != null) {
-                        Text(" Last: ${settings.lastAttempt}", style = MaterialTheme.typography.bodySmall, maxLines = 1)
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Switch(
-                            checked = settings.singleAttemptMode,
-                            onCheckedChange = onToggleSingleAttemptMode
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Single Attempt Mode", style = MaterialTheme.typography.bodyMedium)
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    var successKeywordsText by remember(uiState.settings.successKeywords) { mutableStateOf(uiState.settings.successKeywords.joinToString(",")) }
-                    OutlinedTextField(
-                        value = successKeywordsText,
-                        onValueChange = {
-                            successKeywordsText = it
-                            onUpdateSuccessKeywords(it.split(',').map { kw -> kw.trim() }.filter { kw -> kw.isNotEmpty() })
-                        },
-                        label = { Text("Success Keywords (comma-separated)") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    var captchaKeywordsText by remember(uiState.settings.captchaKeywords) { mutableStateOf(uiState.settings.captchaKeywords.joinToString(",")) }
-                    OutlinedTextField(
-                        value = captchaKeywordsText,
-                        onValueChange = {
-                            captchaKeywordsText = it
-                            onUpdateCaptchaKeywords(it.split(',').map { kw -> kw.trim() }.filter { kw -> kw.isNotEmpty() })
-                        },
-                        label = { Text("CAPTCHA Keywords (comma-separated)") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                    CharacterSetChip(CharacterSetType.LETTERS_NUMBERS, settings.characterSetType, onUpdateCharset)
+                    CharacterSetChip(CharacterSetType.ALPHANUMERIC_SPECIAL, settings.characterSetType, onUpdateCharset)
                 }
+                Spacer(modifier = Modifier.height(12.dp))
 
-                Spacer(modifier = Modifier.height(16.dp))
-                // Close button at the bottom
-                Button(
-                    onClick = onDismiss,
-                    modifier = Modifier.align(Alignment.End)
-                ) {
-                    Text("Close")
+                var paceText by remember(settings.attemptPaceMillis) { mutableStateOf(settings.attemptPaceMillis.toString()) }
+                OutlinedTextField(
+                    value = paceText,
+                    onValueChange = {
+                        paceText = it
+                        it.toLongOrNull()?.let { pace -> onUpdatePace(pace) }
+                    },
+                    label = { Text("Pace (ms)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
+                    leadingIcon = { Icon(Icons.Default.Timer, null) }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(
+                        checked = settings.resumeFromLast,
+                        onCheckedChange = onToggleResume
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Resume from last attempt", style = MaterialTheme.typography.bodyMedium)
                 }
+                if (settings.resumeFromLast && settings.lastAttempt != null) {
+                    Text(" Last: ${settings.lastAttempt}", style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(
+                        checked = settings.singleAttemptMode,
+                        onCheckedChange = onToggleSingleAttemptMode
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Single Attempt Mode", style = MaterialTheme.typography.bodyMedium)
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                var successKeywordsText by remember(uiState.settings.successKeywords) { mutableStateOf(uiState.settings.successKeywords.joinToString(",")) }
+                OutlinedTextField(
+                    value = successKeywordsText,
+                    onValueChange = {
+                        successKeywordsText = it
+                        onUpdateSuccessKeywords(it.split(',').map { kw -> kw.trim() }.filter { kw -> kw.isNotEmpty() })
+                    },
+                    label = { Text("Success Keywords (comma-separated)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                var captchaKeywordsText by remember(uiState.settings.captchaKeywords) { mutableStateOf(uiState.settings.captchaKeywords.joinToString(",")) }
+                OutlinedTextField(
+                    value = captchaKeywordsText,
+                    onValueChange = {
+                        captchaKeywordsText = it
+                        onUpdateCaptchaKeywords(it.split(',').map { kw -> kw.trim() }.filter { kw -> kw.isNotEmpty() })
+                    },
+                    label = { Text("CAPTCHA Keywords (comma-separated)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text("Close")
             }
         }
-    }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
