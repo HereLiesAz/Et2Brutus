@@ -47,7 +47,8 @@ data class BruteforceSettings(
     val lastAttempt: String? = null,
     // Keywords for detection need to be defined
     val successKeywords: List<String> = listOf("success", "welcome", "logged in"),
-    val captchaKeywords: List<String> = listOf("captcha", "verify you", "robot")
+    val captchaKeywords: List<String> = listOf("captcha", "verify you", "robot"),
+    val controllerPosition: Point = Point(100, 300) // Default position
 )
 
 data class BruteforceState(

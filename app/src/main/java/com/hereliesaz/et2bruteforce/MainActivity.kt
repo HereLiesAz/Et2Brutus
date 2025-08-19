@@ -18,11 +18,13 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.et2bruteforce.services.BruteforceAccessibilityService
 import com.hereliesaz.et2bruteforce.comms.AccessibilityCommsManager
 import com.hereliesaz.et2bruteforce.services.FloatingControlService
 import com.hereliesaz.et2bruteforce.ui.theme.Et2BruteForceTheme
+import android.view.KeyEvent
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -145,6 +147,7 @@ class MainActivity : ComponentActivity() {
         stopService(Intent(this, FloatingControlService::class.java))
         Toast.makeText(this, "Floating service stopped.", Toast.LENGTH_SHORT).show()
     }
+
 }
 
 
@@ -177,6 +180,12 @@ fun MainScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text("Screen Bruteforcer Setup", style = MaterialTheme.typography.headlineMedium)
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = {
+                context.startActivity(Intent(context, InstructionActivity::class.java))
+            }) {
+                Text("View Full Instructions")
+            }
             Spacer(modifier = Modifier.height(24.dp))
 
             Text("Permissions Required:")
@@ -231,6 +240,18 @@ fun MainScreen(
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
 
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text(
+                text = stringResource(id = R.string.instructions_label),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(id = R.string.instructions_text),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
         }
     }
 }
