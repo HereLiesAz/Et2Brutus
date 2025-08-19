@@ -39,6 +39,11 @@ class SettingsRepository @Inject constructor(
         private val KEY_LAST_ATTEMPT = stringPreferencesKey("last_attempt")
         private val KEY_SUCCESS_KEYWORDS = stringSetPreferencesKey("success_keywords")
         private val KEY_CAPTCHA_KEYWORDS = stringSetPreferencesKey("captcha_keywords")
+
+        // Keys for controller position
+        private val KEY_CONTROLLER_POS_X = intPreferencesKey("controller_pos_x")
+        private val KEY_CONTROLLER_POS_Y = intPreferencesKey("controller_pos_y")
+        private val KEY_WALKTHROUGH_COMPLETED = booleanPreferencesKey("walkthrough_completed")
     }
 
     val settingsFlow: Flow<BruteforceSettings> = dataStore.data
@@ -64,6 +69,9 @@ class SettingsRepository @Inject constructor(
             val lastAttempt = preferences[KEY_LAST_ATTEMPT]
             val successKeywords = preferences[KEY_SUCCESS_KEYWORDS]?.toList() ?: BruteforceSettings().successKeywords
             val captchaKeywords = preferences[KEY_CAPTCHA_KEYWORDS]?.toList() ?: BruteforceSettings().captchaKeywords
+            val controllerX = preferences[KEY_CONTROLLER_POS_X] ?: 100
+            val controllerY = preferences[KEY_CONTROLLER_POS_Y] ?: 300
+            val walkthroughCompleted = preferences[KEY_WALKTHROUGH_COMPLETED] ?: false
 
             BruteforceSettings(
                 characterLength = charLength,
@@ -74,9 +82,15 @@ class SettingsRepository @Inject constructor(
                 singleAttemptMode = singleAttemptMode,
                 lastAttempt = lastAttempt,
                 successKeywords = successKeywords,
-                captchaKeywords = captchaKeywords
+                captchaKeywords = captchaKeywords,
+                controllerPosition = android.graphics.Point(controllerX, controllerY),
+                walkthroughCompleted = walkthroughCompleted
             )
         }
+
+    suspend fun updateWalkthroughCompleted(completed: Boolean) {
+        updatePreference(KEY_WALKTHROUGH_COMPLETED, completed)
+    }
 
     suspend fun updateSuccessKeywords(keywords: List<String>) {
         updatePreference(KEY_SUCCESS_KEYWORDS, keywords.toSet())
@@ -133,6 +147,11 @@ class SettingsRepository @Inject constructor(
                 settings[key] = value
             }
         }
+    }
+
+    suspend fun updateControllerPosition(position: android.graphics.Point) {
+        updatePreference(KEY_CONTROLLER_POS_X, position.x)
+        updatePreference(KEY_CONTROLLER_POS_Y, position.y)
     }
 
     // Function to get the current settings snapshot (not flow)

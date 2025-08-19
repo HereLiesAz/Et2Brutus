@@ -18,19 +18,27 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.et2bruteforce.services.BruteforceAccessibilityService
 import com.hereliesaz.et2bruteforce.comms.AccessibilityCommsManager
 import com.hereliesaz.et2bruteforce.services.FloatingControlService
 import com.hereliesaz.et2bruteforce.ui.theme.Et2BruteForceTheme
+import android.view.KeyEvent
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+
+import com.hereliesaz.et2bruteforce.data.SettingsRepository
+import kotlinx.coroutines.flow.first
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var commsManager: AccessibilityCommsManager
+
+    @Inject
+    lateinit var settingsRepository: SettingsRepository
 
     // ActivityResultLauncher for SYSTEM_ALERT_WINDOW permission
     private val overlayPermissionLauncher = registerForActivityResult(
@@ -76,6 +84,13 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             commsManager.openDictionaryPickerRequest.collect {
                 dictionaryPickerLauncher.launch(arrayOf("*/*")) // Or specific MIME types
+            }
+        }
+
+        lifecycleScope.launch {
+            val settings = settingsRepository.getSettingsSnapshot()
+            if (!settings.walkthroughCompleted) {
+                startActivity(Intent(this@MainActivity, WalkthroughActivity::class.java))
             }
         }
 
@@ -145,6 +160,7 @@ class MainActivity : ComponentActivity() {
         stopService(Intent(this, FloatingControlService::class.java))
         Toast.makeText(this, "Floating service stopped.", Toast.LENGTH_SHORT).show()
     }
+
 }
 
 
@@ -231,6 +247,18 @@ fun MainScreen(
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
 
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text(
+                text = stringResource(id = R.string.instructions_label),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(id = R.string.instructions_text),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
         }
     }
 }

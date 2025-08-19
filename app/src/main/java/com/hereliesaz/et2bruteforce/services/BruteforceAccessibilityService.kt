@@ -8,6 +8,8 @@ import android.os.Bundle
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.content.Intent
+import android.view.KeyEvent
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import com.hereliesaz.et2bruteforce.comms.AccessibilityCommsManager
 import com.hereliesaz.et2bruteforce.model.NodeType
@@ -95,6 +97,19 @@ class BruteforceAccessibilityService : AccessibilityService() {
     override fun onInterrupt() {
         Log.w(TAG, "Accessibility Service Interrupted. Cancelling jobs.")
         serviceJob.cancel()
+    }
+
+    override fun onKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN &&
+            event.isCtrlPressed &&
+            event.keyCode == KeyEvent.KEYCODE_G
+        ) {
+            Log.d(TAG, "Ctrl+G detected, starting floating service.")
+            val intent = Intent(this, FloatingControlService::class.java)
+            startService(intent)
+            return true // Event handled
+        }
+        return super.onKeyEvent(event)
     }
 
     override fun onDestroy() {
