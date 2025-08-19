@@ -18,12 +18,14 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.hereliesaz.et2bruteforce.model.NodeType
 import com.hereliesaz.et2bruteforce.ui.overlay.RootOverlay
+import com.hereliesaz.et2bruteforce.comms.AccessibilityCommsManager
 import com.hereliesaz.et2bruteforce.viewmodel.BruteforceViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -35,7 +37,7 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
     }
 
     @Inject lateinit var windowManager: WindowManager
-    @Inject lateinit var viewModel: BruteforceViewModel
+    private lateinit var viewModel: BruteforceViewModel
     @Inject lateinit var commsManager: AccessibilityCommsManager
 
     // --- View Management ---
@@ -59,6 +61,7 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
 
     override fun onCreate() {
         super.onCreate()
+        viewModel = ViewModelProvider(this)[BruteforceViewModel::class.java]
         savedStateRegistryController.performRestore(null)
         Log.d(TAG, "onCreate")
 
