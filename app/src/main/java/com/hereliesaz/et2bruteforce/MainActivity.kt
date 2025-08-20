@@ -28,11 +28,17 @@ import android.view.KeyEvent
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
+import com.hereliesaz.et2bruteforce.data.SettingsRepository
+import kotlinx.coroutines.flow.first
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var commsManager: AccessibilityCommsManager
+
+    @Inject
+    lateinit var settingsRepository: SettingsRepository
 
     // ActivityResultLauncher for SYSTEM_ALERT_WINDOW permission
     private val overlayPermissionLauncher = registerForActivityResult(
@@ -78,6 +84,13 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             commsManager.openDictionaryPickerRequest.collect {
                 dictionaryPickerLauncher.launch(arrayOf("*/*")) // Or specific MIME types
+            }
+        }
+
+        lifecycleScope.launch {
+            val settings = settingsRepository.getSettingsSnapshot()
+            if (!settings.walkthroughCompleted) {
+                startActivity(Intent(this@MainActivity, WalkthroughActivity::class.java))
             }
         }
 

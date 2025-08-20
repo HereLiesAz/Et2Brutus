@@ -264,20 +264,45 @@ private fun ExpandableFabMenu(
         )
     }
 
-    Box(contentAlignment = Alignment.BottomEnd) {
+    Box(contentAlignment = Alignment.TopEnd) {
+        FloatingActionButton(
+            onClick = { isExpanded = !isExpanded },
+            shape = CircleShape,
+        ) {
+            Icon(
+                imageVector = Icons.Default.VpnKey,
+                contentDescription = "App Icon",
+                modifier = Modifier.size(56.dp)
+            )
+        }
         AnimatedVisibility(visible = isExpanded) {
             Column(
-                modifier = Modifier.padding(bottom = 64.dp), // fab size (56) + spacing (8)
+                modifier = Modifier.padding(top = 64.dp), // fab size (56) + spacing (8)
+
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items.forEachIndexed { index, item ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = item.text,
-                            modifier = Modifier.padding(end = 8.dp),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Surface(
+                            shape = CircleShape,
+                            color = when (index) {
+                                0 -> ButtonColor1
+                                1 -> ButtonColor2
+                                2 -> ButtonColor3
+                                3 -> ButtonColor4
+                                4 -> ButtonColor5
+                                else -> MaterialTheme.colorScheme.secondaryContainer
+                            }.copy(alpha = 0.9f)
+                        ) {
+                            Text(
+                                text = item.text,
+                                modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 12.sp
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
                         FloatingActionButton(
                             onClick = { if (item.enabled) item.onClick() },
                             shape = CircleShape,

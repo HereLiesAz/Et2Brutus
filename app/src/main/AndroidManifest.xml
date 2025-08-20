@@ -41,11 +41,10 @@
         </intent-filter>
     </activity>
 
-    <!-- Instructions Activity -->
     <activity
-        android:name=".InstructionActivity"
+        android:name=".WalkthroughActivity"
         android:exported="false"
-        android:label="@string/title_activity_instruction"
+
         android:theme="@style/Theme.Et2BruteForce" />
 
     <!-- Floating Control Service -->

@@ -43,6 +43,8 @@ class SettingsRepository @Inject constructor(
         // Keys for controller position
         private val KEY_CONTROLLER_POS_X = intPreferencesKey("controller_pos_x")
         private val KEY_CONTROLLER_POS_Y = intPreferencesKey("controller_pos_y")
+        private val KEY_WALKTHROUGH_COMPLETED = booleanPreferencesKey("walkthrough_completed")
+
     }
 
     val settingsFlow: Flow<BruteforceSettings> = dataStore.data
@@ -70,6 +72,8 @@ class SettingsRepository @Inject constructor(
             val captchaKeywords = preferences[KEY_CAPTCHA_KEYWORDS]?.toList() ?: BruteforceSettings().captchaKeywords
             val controllerX = preferences[KEY_CONTROLLER_POS_X] ?: 100
             val controllerY = preferences[KEY_CONTROLLER_POS_Y] ?: 300
+            val walkthroughCompleted = preferences[KEY_WALKTHROUGH_COMPLETED] ?: false
+
 
             BruteforceSettings(
                 characterLength = charLength,
@@ -81,9 +85,14 @@ class SettingsRepository @Inject constructor(
                 lastAttempt = lastAttempt,
                 successKeywords = successKeywords,
                 captchaKeywords = captchaKeywords,
-                controllerPosition = android.graphics.Point(controllerX, controllerY)
+                controllerPosition = android.graphics.Point(controllerX, controllerY),
+                walkthroughCompleted = walkthroughCompleted
             )
         }
+
+    suspend fun updateWalkthroughCompleted(completed: Boolean) {
+        updatePreference(KEY_WALKTHROUGH_COMPLETED, completed)
+    }
 
     suspend fun updateSuccessKeywords(keywords: List<String>) {
         updatePreference(KEY_SUCCESS_KEYWORDS, keywords.toSet())
