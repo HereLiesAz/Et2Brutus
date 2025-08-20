@@ -278,6 +278,7 @@ private fun ExpandableFabMenu(
         AnimatedVisibility(visible = isExpanded) {
             Column(
                 modifier = Modifier.padding(top = 64.dp), // fab size (56) + spacing (8)
+
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -320,6 +321,16 @@ private fun ExpandableFabMenu(
                     }
                 }
             }
+        }
+        FloatingActionButton(
+            onClick = { isExpanded = !isExpanded },
+            shape = CircleShape,
+        ) {
+            Icon(
+                painter = painterResource(id = com.hereliesaz.et2bruteforce.R.drawable.ic_launcher_foreground),
+                contentDescription = "App Icon",
+                modifier = Modifier.size(56.dp)
+            )
         }
     }
 }

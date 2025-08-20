@@ -44,6 +44,7 @@ class SettingsRepository @Inject constructor(
         private val KEY_CONTROLLER_POS_X = intPreferencesKey("controller_pos_x")
         private val KEY_CONTROLLER_POS_Y = intPreferencesKey("controller_pos_y")
         private val KEY_WALKTHROUGH_COMPLETED = booleanPreferencesKey("walkthrough_completed")
+
     }
 
     val settingsFlow: Flow<BruteforceSettings> = dataStore.data
@@ -72,6 +73,7 @@ class SettingsRepository @Inject constructor(
             val controllerX = preferences[KEY_CONTROLLER_POS_X] ?: 100
             val controllerY = preferences[KEY_CONTROLLER_POS_Y] ?: 300
             val walkthroughCompleted = preferences[KEY_WALKTHROUGH_COMPLETED] ?: false
+
 
             BruteforceSettings(
                 characterLength = charLength,

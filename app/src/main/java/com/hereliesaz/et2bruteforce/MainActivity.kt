@@ -193,6 +193,12 @@ fun MainScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text("Screen Bruteforcer Setup", style = MaterialTheme.typography.headlineMedium)
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = {
+                context.startActivity(Intent(context, InstructionActivity::class.java))
+            }) {
+                Text("View Full Instructions")
+            }
             Spacer(modifier = Modifier.height(24.dp))
 
             Text("Permissions Required:")
