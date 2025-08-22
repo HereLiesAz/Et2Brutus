@@ -114,16 +114,28 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
                 RootOverlay(
                     viewKey = viewKey,
                     uiState = uiState,
-                    onDrag = { deltaX, deltaY -> updateViewPosition(viewKey, deltaX, deltaY) },
+                    highlightedInfo = uiState.highlightedInfo,
+                    onDrag = { deltaX, deltaY ->
+                        if (viewKey is NodeType) {
+                            val currentParams = windowLayoutParams[viewKey]
+                            if (currentParams != null) {
+                                val newPoint = Point(currentParams.x + deltaX.toInt(), currentParams.y + deltaY.toInt())
+                                viewModel.highlightNodeAt(newPoint, viewKey)
+                            }
+                        }
+                        updateViewPosition(viewKey, deltaX, deltaY)
+                    },
                     onDragEnd = { point ->
                         if (viewKey is NodeType) {
                             viewModel.identifyNodeAt(viewKey, point)
                         }
+                        viewModel.clearHighlight()
                     },
                     // Pass all other callbacks for the main controller
                     onStart = viewModel::startBruteforce,
                     onPause = viewModel::pauseBruteforce,
                     onStop = viewModel::stopBruteforce,
+                    onClose = { stopSelf() },
                     onSelectDictionary = {
                         serviceScope.launch {
                             commsManager.requestOpenDictionaryPicker()
@@ -191,10 +203,8 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand")
-        // Perform setup for SavedStateRegistryOwner based on start command if needed
-        // savedStateRegistryController.handleLifecycleEvent(Lifecycle.Event.ON_START) // Maybe needed? Check docs.
         super.onStartCommand(intent, flags, startId)
-        return START_STICKY // Keep service running if killed by system
+        return START_STICKY
     }
 
     override fun onDestroy() {
@@ -216,7 +226,7 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
     }
 
     override fun onBind(intent: Intent): IBinder? {
-        super.onBind(intent) // Handle lifecycle events
+        super.onBind(intent)
         return null
     }
 }

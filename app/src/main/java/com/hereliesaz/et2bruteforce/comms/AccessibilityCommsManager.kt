@@ -1,6 +1,7 @@
 package com.hereliesaz.et2bruteforce.comms
 
 import android.graphics.Point
+import android.graphics.Rect
 import com.hereliesaz.et2bruteforce.model.NodeType // <-- Updated Import
 import android.net.Uri
 import com.hereliesaz.et2bruteforce.services.NodeInfo
@@ -18,11 +19,13 @@ data class InputTextRequest(val targetNodeInfo: NodeInfo, val text: String, val 
 data class ClickNodeRequest(val targetNodeInfo: NodeInfo, val requestId: String)
 data class AnalyzeScreenRequest(val successKeywords: List<String>, val captchaKeywords: List<String>, val requestId: String)
 data class NodeIdentificationRequest(val coordinates: Point, val nodeType: NodeType, val requestId: String)
+data class HighlightNodeRequest(val coordinates: Point, val nodeType: NodeType, val requestId: String)
 
 // Events must also carry the requestId for correlation
 data class ActionCompletedEvent(val requestId: String, val success: Boolean)
 data class NodeIdentifiedEvent(val requestId: String, val nodeInfo: NodeInfo?, val nodeType: NodeType) // Uses NodeType
 data class AnalysisResultEvent(val requestId: String, val result: ScreenAnalysisResult)
+data class NodeHighlightedEvent(val requestId: String, val bounds: Rect?, val nodeType: NodeType)
 
 
 // Helper function remains the same, but caller needs to use it
@@ -44,6 +47,9 @@ class AccessibilityCommsManager @Inject constructor() {
     private val _nodeIdentificationRequest = MutableSharedFlow<NodeIdentificationRequest>(replay = 0, extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     val nodeIdentificationRequest: SharedFlow<NodeIdentificationRequest> = _nodeIdentificationRequest.asSharedFlow()
 
+    private val _nodeHighlightRequest = MutableSharedFlow<HighlightNodeRequest>(replay = 0, extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    val nodeHighlightRequest: SharedFlow<HighlightNodeRequest> = _nodeHighlightRequest.asSharedFlow()
+
     // --- Flows for Service -> VM Communication (Results / Events) ---
     private val _actionCompletedEvent = MutableSharedFlow<ActionCompletedEvent>(replay = 0, extraBufferCapacity = 5, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     val actionCompletedEvent: SharedFlow<ActionCompletedEvent> = _actionCompletedEvent.asSharedFlow()
@@ -53,6 +59,9 @@ class AccessibilityCommsManager @Inject constructor() {
 
     private val _analysisResultEvent = MutableSharedFlow<AnalysisResultEvent>(replay = 0, extraBufferCapacity = 5, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     val analysisResultEvent: SharedFlow<AnalysisResultEvent> = _analysisResultEvent.asSharedFlow()
+
+    private val _nodeHighlightedEvent = MutableSharedFlow<NodeHighlightedEvent>(replay = 0, extraBufferCapacity = 5, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    val nodeHighlightedEvent: SharedFlow<NodeHighlightedEvent> = _nodeHighlightedEvent.asSharedFlow()
 
     // --- Methods for VM to Emit Requests (Now require request object) ---
     suspend fun requestInputText(request: InputTextRequest) {
@@ -71,6 +80,10 @@ class AccessibilityCommsManager @Inject constructor() {
         _nodeIdentificationRequest.emit(request)
     }
 
+    suspend fun requestNodeHighlight(request: HighlightNodeRequest) {
+        _nodeHighlightRequest.emit(request)
+    }
+
     // --- Methods for Service to Emit Results/Events (Require requestId) ---
     suspend fun reportActionCompleted(requestId: String, success: Boolean) {
         _actionCompletedEvent.emit(ActionCompletedEvent(requestId, success))
@@ -80,6 +93,10 @@ class AccessibilityCommsManager @Inject constructor() {
     }
     suspend fun reportAnalysisResult(requestId: String, result: ScreenAnalysisResult) {
         _analysisResultEvent.emit(AnalysisResultEvent(requestId, result))
+    }
+
+    suspend fun reportNodeHighlighted(requestId: String, bounds: Rect?, nodeType: NodeType) {
+        _nodeHighlightedEvent.emit(NodeHighlightedEvent(requestId, bounds, nodeType))
     }
 
     // --- Flows and Methods for UI -> Activity Communication ---
