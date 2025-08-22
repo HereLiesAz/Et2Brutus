@@ -1,6 +1,8 @@
 package com.hereliesaz.et2bruteforce.viewmodel
 
+import androidx.compose.ui.graphics.Color
 import android.graphics.Point
+import android.graphics.Rect
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -8,9 +10,18 @@ import androidx.lifecycle.viewModelScope
 import com.hereliesaz.et2bruteforce.comms.*
 import com.hereliesaz.et2bruteforce.data.SettingsRepository
 import com.hereliesaz.et2bruteforce.domain.BruteforceEngine
-import com.hereliesaz.et2bruteforce.model.* // Includes BruteforceState, CharacterSetType, NodeType
+import com.hereliesaz.et2bruteforce.model.BruteforceState
+import com.hereliesaz.et2bruteforce.model.BruteforceSettings
+import com.hereliesaz.et2bruteforce.model.BruteforceStatus
+import com.hereliesaz.et2bruteforce.model.CharacterSetType
+import com.hereliesaz.et2bruteforce.model.HighlightInfo
+import com.hereliesaz.et2bruteforce.model.NodeType
+import kotlinx.coroutines.delay
 import com.hereliesaz.et2bruteforce.services.NodeInfo
 import com.hereliesaz.et2bruteforce.services.ScreenAnalysisResult
+import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor5
+import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor6
+import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor7
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -49,6 +60,23 @@ class BruteforceViewModel @Inject constructor(
             .onEach { event ->
                 Log.d(TAG, "Received NodeIdentifiedEvent [${event.requestId}]: ${event.nodeType}, Success: ${event.nodeInfo != null}")
                 handleNodeIdentificationResult(event)
+            }
+            .launchIn(viewModelScope)
+
+        commsManager.nodeHighlightedEvent
+            .onEach { event ->
+                Log.d(TAG, "Received NodeHighlightedEvent [${event.requestId}]: Success: ${event.bounds != null}")
+                val bounds = event.bounds
+                if (bounds != null) {
+                    val color = when (event.nodeType) {
+                        NodeType.INPUT -> WalkthroughColor5
+                        NodeType.SUBMIT -> WalkthroughColor6
+                        NodeType.POPUP -> WalkthroughColor7
+                    }
+                    _uiState.update { it.copy(highlightedInfo = HighlightInfo(bounds, color)) }
+                } else {
+                    _uiState.update { it.copy(highlightedInfo = null) }
+                }
             }
             .launchIn(viewModelScope)
         // No need for active listeners for ActionCompleted or AnalysisResult here
@@ -162,6 +190,22 @@ class BruteforceViewModel @Inject constructor(
         viewModelScope.launch {
             commsManager.requestNodeIdentification(NodeIdentificationRequest(point, nodeType, requestId))
         }
+    }
+
+    fun highlightNodeAt(point: Point, nodeType: NodeType) {
+        val requestId = generateRequestId()
+        Log.d(TAG, "Requesting node highlight for $nodeType at $point [${requestId}]")
+        viewModelScope.launch {
+            commsManager.requestNodeHighlight(HighlightNodeRequest(point, nodeType, requestId))
+        }
+    }
+
+    fun clearHighlight() {
+        _uiState.update { it.copy(highlightedInfo = null) }
+    }
+
+    fun toggleActionButtons() {
+        _uiState.update { it.copy(actionButtonsEnabled = !it.actionButtonsEnabled) }
     }
 
     // --- Bruteforce Action Methods ---

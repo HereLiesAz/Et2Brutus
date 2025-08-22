@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import android.view.Gravity
+import android.view.View
 import android.view.WindowManager
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
@@ -27,6 +28,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -89,16 +92,37 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
         })
 
         createOverlayViews()
+
+        lifecycleScope.launch {
+            viewModel.uiState.map { it.actionButtonsEnabled }.distinctUntilChanged().collect { enabled ->
+                toggleActionButtons(enabled)
+            }
+        }
+    }
+
+    private fun toggleActionButtons(enabled: Boolean) {
+        NodeType.values().forEach { nodeType ->
+            val view = composeViews[nodeType]
+            if (view != null) {
+                view.visibility = if (enabled) View.VISIBLE else View.GONE
+            } else if (enabled) {
+                // Re-create view if it doesn't exist
+                val initialPos = viewModel.uiState.value.buttonConfigs[nodeType]?.position ?: Point(100, 500 + (nodeType.ordinal * 200))
+                createAndAddView(nodeType, initialPos)
+            }
+        }
     }
 
     private fun createOverlayViews() {
         // Create Main Controller
         createAndAddView(MAIN_CONTROLLER_KEY, viewModel.uiState.value.settings.controllerPosition)
 
-        // Create Draggable Config Buttons
-        NodeType.values().forEach { nodeType ->
-            val initialPos = viewModel.uiState.value.buttonConfigs[nodeType]?.position ?: Point(100, 500 + (nodeType.ordinal * 200))
-            createAndAddView(nodeType, initialPos)
+        // Create Draggable Config Buttons if enabled
+        if (viewModel.uiState.value.actionButtonsEnabled) {
+            NodeType.values().forEach { nodeType ->
+                val initialPos = viewModel.uiState.value.buttonConfigs[nodeType]?.position ?: Point(100, 500 + (nodeType.ordinal * 200))
+                createAndAddView(nodeType, initialPos)
+            }
         }
     }
 
@@ -114,16 +138,28 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
                 RootOverlay(
                     viewKey = viewKey,
                     uiState = uiState,
-                    onDrag = { deltaX, deltaY -> updateViewPosition(viewKey, deltaX, deltaY) },
+                    highlightedInfo = uiState.highlightedInfo,
+                    onDrag = { deltaX, deltaY ->
+                        if (viewKey is NodeType) {
+                            val currentParams = windowLayoutParams[viewKey]
+                            if (currentParams != null) {
+                                val newPoint = Point(currentParams.x + deltaX.toInt(), currentParams.y + deltaY.toInt())
+                                viewModel.highlightNodeAt(newPoint, viewKey)
+                            }
+                        }
+                        updateViewPosition(viewKey, deltaX, deltaY)
+                    },
                     onDragEnd = { point ->
                         if (viewKey is NodeType) {
                             viewModel.identifyNodeAt(viewKey, point)
                         }
+                        viewModel.clearHighlight()
                     },
                     // Pass all other callbacks for the main controller
                     onStart = viewModel::startBruteforce,
                     onPause = viewModel::pauseBruteforce,
                     onStop = viewModel::stopBruteforce,
+                    onClose = { stopSelf() },
                     onSelectDictionary = {
                         serviceScope.launch {
                             commsManager.requestOpenDictionaryPicker()
@@ -135,7 +171,8 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
                     onToggleResume = viewModel::toggleResumeFromLast,
                     onToggleSingleAttemptMode = viewModel::toggleSingleAttemptMode,
                     onUpdateSuccessKeywords = viewModel::updateSuccessKeywords,
-                    onUpdateCaptchaKeywords = viewModel::updateCaptchaKeywords
+                    onUpdateCaptchaKeywords = viewModel::updateCaptchaKeywords,
+                    onToggleActionButtons = viewModel::toggleActionButtons
                 )
             }
         }
@@ -191,10 +228,8 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand")
-        // Perform setup for SavedStateRegistryOwner based on start command if needed
-        // savedStateRegistryController.handleLifecycleEvent(Lifecycle.Event.ON_START) // Maybe needed? Check docs.
         super.onStartCommand(intent, flags, startId)
-        return START_STICKY // Keep service running if killed by system
+        return START_STICKY
     }
 
     override fun onDestroy() {
@@ -216,7 +251,7 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
     }
 
     override fun onBind(intent: Intent): IBinder? {
-        super.onBind(intent) // Handle lifecycle events
+        super.onBind(intent)
         return null
     }
 }

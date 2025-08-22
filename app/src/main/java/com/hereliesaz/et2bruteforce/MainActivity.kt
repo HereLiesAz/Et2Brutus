@@ -195,7 +195,7 @@ fun MainScreen(
             Text("Screen Bruteforcer Setup", style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = {
-                context.startActivity(Intent(context, InstructionActivity::class.java))
+                context.startActivity(Intent(context, WalkthroughActivity::class.java))
             }) {
                 Text("View Full Instructions")
             }
