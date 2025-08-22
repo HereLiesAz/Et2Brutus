@@ -1,5 +1,6 @@
 package com.hereliesaz.et2bruteforce.viewmodel
 
+import androidx.compose.ui.graphics.Color
 import android.graphics.Point
 import android.graphics.Rect
 import android.net.Uri
@@ -12,6 +13,9 @@ import com.hereliesaz.et2bruteforce.domain.BruteforceEngine
 import com.hereliesaz.et2bruteforce.model.* // Includes BruteforceState, CharacterSetType, NodeType
 import com.hereliesaz.et2bruteforce.services.NodeInfo
 import com.hereliesaz.et2bruteforce.services.ScreenAnalysisResult
+import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor5
+import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor6
+import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor7
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -19,6 +23,8 @@ import java.util.UUID
 import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+
+data class HighlightInfo(val bounds: Rect, val color: androidx.compose.ui.graphics.Color)
 
 @HiltViewModel
 class BruteforceViewModel @Inject constructor(
@@ -34,9 +40,7 @@ class BruteforceViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(BruteforceState())
     val uiState: StateFlow<BruteforceState> = _uiState.asStateFlow()
 
-    private val _highlightedNodeBounds = MutableStateFlow<Rect?>(null)
-    val highlightedNodeBounds: StateFlow<Rect?> = _highlightedNodeBounds.asStateFlow()
-
+    private var draggingNodeType: NodeType? = null
     private var bruteforceJob: Job? = null
 
     init {
@@ -59,7 +63,18 @@ class BruteforceViewModel @Inject constructor(
         commsManager.nodeHighlightedEvent
             .onEach { event ->
                 Log.d(TAG, "Received NodeHighlightedEvent [${event.requestId}]: Success: ${event.bounds != null}")
-                _highlightedNodeBounds.value = event.bounds
+                val bounds = event.bounds
+                if (bounds != null) {
+                    val color = when (draggingNodeType) {
+                        NodeType.INPUT -> WalkthroughColor5
+                        NodeType.SUBMIT -> WalkthroughColor6
+                        NodeType.POPUP -> WalkthroughColor7
+                        else -> androidx.compose.ui.graphics.Color.Gray
+                    }
+                    _uiState.update { it.copy(highlightedInfo = HighlightInfo(bounds, color)) }
+                } else {
+                    _uiState.update { it.copy(highlightedInfo = null) }
+                }
             }
             .launchIn(viewModelScope)
         // No need for active listeners for ActionCompleted or AnalysisResult here
@@ -175,16 +190,18 @@ class BruteforceViewModel @Inject constructor(
         }
     }
 
-    fun highlightNodeAt(point: Point) {
+    fun highlightNodeAt(point: Point, nodeType: NodeType) {
+        draggingNodeType = nodeType
         val requestId = generateRequestId()
-        Log.d(TAG, "Requesting node highlight at $point [${requestId}]")
+        Log.d(TAG, "Requesting node highlight for $nodeType at $point [${requestId}]")
         viewModelScope.launch {
             commsManager.requestNodeHighlight(HighlightNodeRequest(point, requestId))
         }
     }
 
     fun clearHighlight() {
-        _highlightedNodeBounds.value = null
+        _uiState.update { it.copy(highlightedInfo = null) }
+        draggingNodeType = null
     }
 
     // --- Bruteforce Action Methods ---
