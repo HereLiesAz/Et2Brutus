@@ -51,7 +51,7 @@ import kotlin.math.sin
 fun RootOverlay(
     viewKey: Any,
     uiState: BruteforceState,
-    highlightedBounds: Rect?,
+    highlightedInfo: com.hereliesaz.et2bruteforce.model.HighlightInfo?,
     onDrag: (deltaX: Float, deltaY: Float) -> Unit,
     onDragEnd: (Point) -> Unit,
     onStart: () -> Unit,
@@ -68,8 +68,8 @@ fun RootOverlay(
     onUpdateCaptchaKeywords: (List<String>) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
-        uiState.highlightedInfo?.let { info ->
-            HighlightBox(bounds = info.bounds, color = info.color)
+        if (highlightedInfo != null) {
+            HighlightBox(bounds = highlightedInfo.bounds, color = highlightedInfo.color)
         }
         when (viewKey) {
             is NodeType -> {

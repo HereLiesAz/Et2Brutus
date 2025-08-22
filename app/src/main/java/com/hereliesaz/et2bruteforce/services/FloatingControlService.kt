@@ -115,6 +115,7 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
                 RootOverlay(
                     viewKey = viewKey,
                     uiState = uiState,
+                    highlightedInfo = uiState.highlightedInfo,
                     onDrag = { deltaX, deltaY ->
                         if (viewKey is NodeType) {
                             val currentParams = windowLayoutParams[viewKey]
