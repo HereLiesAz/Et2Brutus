@@ -68,12 +68,7 @@ class BruteforceViewModel @Inject constructor(
                 Log.d(TAG, "Received NodeHighlightedEvent [${event.requestId}]: Success: ${event.bounds != null}")
                 val bounds = event.bounds
                 if (bounds != null) {
-                    val color = when (event.nodeType) {
-                        NodeType.INPUT -> WalkthroughColor5
-                        NodeType.SUBMIT -> WalkthroughColor6
-                        NodeType.POPUP -> WalkthroughColor7
-                    }
-                    _uiState.update { it.copy(highlightedInfo = HighlightInfo(bounds, color)) }
+                    _uiState.update { it.copy(highlightedInfo = HighlightInfo(bounds, event.nodeType)) }
                 } else {
                     _uiState.update { it.copy(highlightedInfo = null) }
                 }
@@ -202,6 +197,10 @@ class BruteforceViewModel @Inject constructor(
 
     fun clearHighlight() {
         _uiState.update { it.copy(highlightedInfo = null) }
+    }
+
+    fun toggleActionButtons() {
+        _uiState.update { it.copy(actionButtonsEnabled = !it.actionButtonsEnabled) }
     }
 
     // --- Bruteforce Action Methods ---

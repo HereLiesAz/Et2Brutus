@@ -41,6 +41,7 @@ import com.hereliesaz.et2bruteforce.model.BruteforceStatus
 import com.hereliesaz.et2bruteforce.model.CharacterSetType
 import com.hereliesaz.et2bruteforce.R
 import com.hereliesaz.et2bruteforce.model.NodeType
+import com.hereliesaz.et2bruteforce.model.getColor
 import com.hereliesaz.et2bruteforce.services.FloatingControlService.Companion.MAIN_CONTROLLER_KEY
 import com.hereliesaz.et2bruteforce.ui.theme.*
 import kotlin.math.cos
@@ -58,6 +59,7 @@ fun RootOverlay(
     onPause: () -> Unit,
     onStop: () -> Unit,
     onClose: () -> Unit,
+    onToggleActionButtons: () -> Unit,
     onSelectDictionary: () -> Unit,
     onUpdateLength: (Int) -> Unit,
     onUpdateCharset: (CharacterSetType) -> Unit,
@@ -69,7 +71,7 @@ fun RootOverlay(
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         if (highlightedInfo != null) {
-            HighlightBox(bounds = highlightedInfo.bounds, color = highlightedInfo.color)
+            HighlightBox(bounds = highlightedInfo.bounds, nodeType = highlightedInfo.nodeType)
         }
         when (viewKey) {
             is NodeType -> {
@@ -88,6 +90,7 @@ fun RootOverlay(
                     onPause = onPause,
                     onStop = onStop,
                     onClose = onClose,
+                    onToggleActionButtons = onToggleActionButtons,
                     onSelectDictionary = onSelectDictionary,
                     onUpdateLength = onUpdateLength,
                     onUpdateCharset = onUpdateCharset,
@@ -103,7 +106,8 @@ fun RootOverlay(
 }
 
 @Composable
-fun HighlightBox(bounds: Rect, color: Color) {
+fun HighlightBox(bounds: Rect, nodeType: NodeType) {
+    val color = nodeType.getColor()
     val density = LocalDensity.current
     val x = with(density) { bounds.left.toDp() }
     val y = with(density) { bounds.top.toDp() }
@@ -127,6 +131,7 @@ fun MainControllerUi(
     onPause: () -> Unit,
     onStop: () -> Unit,
     onClose: () -> Unit,
+    onToggleActionButtons: () -> Unit,
     onSelectDictionary: () -> Unit,
     onUpdateLength: (Int) -> Unit,
     onUpdateCharset: (CharacterSetType) -> Unit,
@@ -156,6 +161,7 @@ fun MainControllerUi(
             onPause = onPause,
             onStop = onStop,
             onClose = onClose,
+            onToggleActionButtons = onToggleActionButtons,
             onShowSettings = { showSettingsDialog = true },
             onSelectDictionary = onSelectDictionary
         )
@@ -215,11 +221,7 @@ fun ConfigButtonUi(
                     )
                 },
             containerColor = if (isIdentified) {
-                when (nodeType) {
-                    NodeType.INPUT -> WalkthroughColor5
-                    NodeType.SUBMIT -> WalkthroughColor6
-                    NodeType.POPUP -> WalkthroughColor7
-                }
+                nodeType.getColor()
             } else MaterialTheme.colorScheme.secondaryContainer
         ) {
             val icon = when (nodeType) {
@@ -256,13 +258,15 @@ private fun ExpandableFabMenu(
     onPause: () -> Unit,
     onStop: () -> Unit,
     onClose: () -> Unit,
+    onToggleActionButtons: () -> Unit,
     onShowSettings: () -> Unit,
     onSelectDictionary: () -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     val status = uiState.status
+    val actionButtonsEnabled = uiState.actionButtonsEnabled
 
-    val items = remember(status) {
+    val items = remember(status, actionButtonsEnabled) {
         listOf(
             MindMapActionItem(
                 icon = Icons.Default.PlayArrow,
@@ -291,6 +295,11 @@ private fun ExpandableFabMenu(
                 icon = Icons.Default.Settings,
                 text = "Settings",
                 onClick = onShowSettings
+            ),
+            MindMapActionItem(
+                icon = if (actionButtonsEnabled) Icons.Default.Cancel else Icons.Filled.PlayCircleOutline,
+                text = if (actionButtonsEnabled) "Disable Buttons" else "Enable Buttons",
+                onClick = onToggleActionButtons
             ),
             MindMapActionItem(
                 icon = Icons.Default.Close,
@@ -503,7 +512,7 @@ private fun SuccessConfirmation(
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         Text("Success Detected!", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-        Text("Password Found: $candidate", style = MaterialTheme. typography.bodyMedium)
+        Text("Password Found: $candidate", style = MaterialTheme.typography.bodyMedium)
         Spacer(modifier = Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
             Button(onClick = onConfirm) { Text("Confirm") }

@@ -201,7 +201,11 @@ class BruteforceAccessibilityService : AccessibilityService() {
     }
 
     private suspend fun highlightAndReportNode(coordinates: Point, nodeType: NodeType, requestId: String) {
-        val foundNodeInfo: NodeInfo? = findNodeAt(coordinates.x, coordinates.y) { true } // Find any node
+        val filter: (AccessibilityNodeInfo) -> Boolean = when (nodeType) {
+            NodeType.INPUT -> { node -> AccessibilityNodeInfoCompat.wrap(node).isEditable }
+            NodeType.SUBMIT, NodeType.POPUP -> { node -> node.isClickable }
+        }
+        val foundNodeInfo: NodeInfo? = findNodeAt(coordinates.x, coordinates.y, filter)
         commsManager.reportNodeHighlighted(requestId, foundNodeInfo?.boundsInScreen, nodeType)
         if (foundNodeInfo == null) Log.w(TAG, "Highlight [${requestId}] FAILED @ $coordinates")
         else Log.i(TAG, "Highlight [${requestId}] OK: ${foundNodeInfo.viewIdResourceName ?: "(no id)"}")

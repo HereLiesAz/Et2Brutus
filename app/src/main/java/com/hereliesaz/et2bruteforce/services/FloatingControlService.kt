@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import android.view.Gravity
+import android.view.View
 import android.view.WindowManager
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
@@ -27,6 +28,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -89,16 +92,37 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
         })
 
         createOverlayViews()
+
+        lifecycleScope.launch {
+            viewModel.uiState.map { it.actionButtonsEnabled }.distinctUntilChanged().collect { enabled ->
+                toggleActionButtons(enabled)
+            }
+        }
+    }
+
+    private fun toggleActionButtons(enabled: Boolean) {
+        NodeType.values().forEach { nodeType ->
+            val view = composeViews[nodeType]
+            if (view != null) {
+                view.visibility = if (enabled) View.VISIBLE else View.GONE
+            } else if (enabled) {
+                // Re-create view if it doesn't exist
+                val initialPos = viewModel.uiState.value.buttonConfigs[nodeType]?.position ?: Point(100, 500 + (nodeType.ordinal * 200))
+                createAndAddView(nodeType, initialPos)
+            }
+        }
     }
 
     private fun createOverlayViews() {
         // Create Main Controller
         createAndAddView(MAIN_CONTROLLER_KEY, viewModel.uiState.value.settings.controllerPosition)
 
-        // Create Draggable Config Buttons
-        NodeType.values().forEach { nodeType ->
-            val initialPos = viewModel.uiState.value.buttonConfigs[nodeType]?.position ?: Point(100, 500 + (nodeType.ordinal * 200))
-            createAndAddView(nodeType, initialPos)
+        // Create Draggable Config Buttons if enabled
+        if (viewModel.uiState.value.actionButtonsEnabled) {
+            NodeType.values().forEach { nodeType ->
+                val initialPos = viewModel.uiState.value.buttonConfigs[nodeType]?.position ?: Point(100, 500 + (nodeType.ordinal * 200))
+                createAndAddView(nodeType, initialPos)
+            }
         }
     }
 
@@ -147,7 +171,8 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
                     onToggleResume = viewModel::toggleResumeFromLast,
                     onToggleSingleAttemptMode = viewModel::toggleSingleAttemptMode,
                     onUpdateSuccessKeywords = viewModel::updateSuccessKeywords,
-                    onUpdateCaptchaKeywords = viewModel::updateCaptchaKeywords
+                    onUpdateCaptchaKeywords = viewModel::updateCaptchaKeywords,
+                    onToggleActionButtons = viewModel::toggleActionButtons
                 )
             }
         }
