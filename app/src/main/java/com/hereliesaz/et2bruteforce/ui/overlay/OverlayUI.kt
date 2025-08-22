@@ -51,6 +51,7 @@ import kotlin.math.sin
 fun RootOverlay(
     viewKey: Any,
     uiState: BruteforceState,
+    highlightedBounds: Rect?,
     onDrag: (deltaX: Float, deltaY: Float) -> Unit,
     onDragEnd: (Point) -> Unit,
     onStart: () -> Unit,
@@ -502,7 +503,7 @@ private fun SuccessConfirmation(
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         Text("Success Detected!", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-        Text("Password Found: $candidate", style = MaterialTheme.typography.bodyMedium)
+        Text("Password Found: $candidate", style = MaterialTheme. typography.bodyMedium)
         Spacer(modifier = Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
             Button(onClick = onConfirm) { Text("Confirm") }
