@@ -204,10 +204,8 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand")
-        // Perform setup for SavedStateRegistryOwner based on start command if needed
-        // savedStateRegistryController.handleLifecycleEvent(Lifecycle.Event.ON_START) // Maybe needed? Check docs.
         super.onStartCommand(intent, flags, startId)
-        return START_STICKY // Keep service running if killed by system
+        return START_STICKY
     }
 
     override fun onDestroy() {
@@ -229,7 +227,7 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
     }
 
     override fun onBind(intent: Intent): IBinder? {
-        super.onBind(intent) // Handle lifecycle events
+        super.onBind(intent)
         return null
     }
 }
