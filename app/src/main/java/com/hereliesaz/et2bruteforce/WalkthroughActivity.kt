@@ -14,11 +14,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.et2bruteforce.data.SettingsRepository
-import com.hereliesaz.et2bruteforce.ui.theme.Et2BruteForceTheme
+import com.hereliesaz.et2bruteforce.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -33,15 +34,26 @@ class WalkthroughActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val walkthroughColors = listOf(
+            WalkthroughColor1,
+            WalkthroughColor2,
+            WalkthroughColor3,
+            WalkthroughColor4,
+            WalkthroughColor5,
+            WalkthroughColor6,
+            WalkthroughColor7,
+            WalkthroughColor8
+        )
+
         val pages = listOf(
-            WalkthroughPage("Welcome!", "This app helps you automate repetitive tasks by simulating screen taps.", Icons.Default.Celebration),
-            WalkthroughPage("Permissions", "First, please grant both 'Draw Over Other Apps' and 'Accessibility Service' permissions on the main screen.", Icons.Default.Shield),
-            WalkthroughPage("The Shortcut", "Press (Ctrl + G) on a physical keyboard to show or hide the floating menu at any time.", Icons.Default.Keyboard),
-            WalkthroughPage("The Menu", "Tap the floating dagger icon to open the menu. You can drag the icon anywhere on the screen.", Icons.Default.Menu),
-            WalkthroughPage("Identify Input", "Drag the 'Input' button over the text field where the app should type (e.g., a password field).", Icons.Default.TextFields),
-            WalkthroughPage("Identify Submit", "Drag the 'Submit' button over the button that submits the form (e.g., a 'Login' button).", Icons.Default.ArrowForward),
-            WalkthroughPage("Identify Popups", "If a popup appears after a failed attempt, drag the 'Popup' button over the button that closes it (e.g., 'OK').", Icons.Default.Warning),
-            WalkthroughPage("You're All Set!", "Once the 'Input' and 'Submit' buttons have identified their targets, you can start the process from the menu.", Icons.Default.CheckCircle)
+            WalkthroughPage("Welcome!", "This app helps you automate repetitive tasks by simulating screen taps.", Icons.Default.Celebration, walkthroughColors[0]),
+            WalkthroughPage("Permissions", "First, please grant both 'Draw Over Other Apps' and 'Accessibility Service' permissions on the main screen.", Icons.Default.Shield, walkthroughColors[1]),
+            WalkthroughPage("The Shortcut", "Press (Ctrl + G) on a physical keyboard to show or hide the floating menu at any time.", Icons.Default.Keyboard, walkthroughColors[2]),
+            WalkthroughPage("The Menu", "Tap the floating dagger icon to open the menu. You can drag the icon anywhere on the screen.", Icons.Default.Menu, walkthroughColors[3]),
+            WalkthroughPage("Identify Input", "Drag the 'Input' button over the text field where the app should type (e.g., a password field).", Icons.Default.TextFields, walkthroughColors[4]),
+            WalkthroughPage("Identify Submit", "Drag the 'Submit' button over the button that submits the form (e.g., a 'Login' button).", Icons.Default.ArrowForward, walkthroughColors[5]),
+            WalkthroughPage("Identify Popups", "If a popup appears after a failed attempt, drag the 'Popup' button over the button that closes it (e.g., 'OK').", Icons.Default.Warning, walkthroughColors[6]),
+            WalkthroughPage("You're All Set!", "Once the 'Input' and 'Submit' buttons have identified their targets, you can start the process from the menu.", Icons.Default.CheckCircle, walkthroughColors[7])
         )
 
         setContent {
@@ -111,7 +123,8 @@ class WalkthroughActivity : ComponentActivity() {
 data class WalkthroughPage(
     val title: String,
     val text: String,
-    val icon: ImageVector
+    val icon: ImageVector,
+    val color: Color
 )
 
 @Composable
@@ -127,7 +140,7 @@ fun WalkthroughPageContent(page: WalkthroughPage) {
             imageVector = page.icon,
             contentDescription = page.title,
             modifier = Modifier.size(128.dp),
-            tint = MaterialTheme.colorScheme.primary
+            tint = page.color
         )
         Spacer(modifier = Modifier.height(32.dp))
         Text(

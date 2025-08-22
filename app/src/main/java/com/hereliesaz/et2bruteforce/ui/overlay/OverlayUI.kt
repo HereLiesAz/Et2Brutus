@@ -1,10 +1,13 @@
 package com.hereliesaz.et2bruteforce.ui.overlay
 
 import android.graphics.Point
+import android.graphics.Rect
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -48,11 +51,13 @@ import kotlin.math.sin
 fun RootOverlay(
     viewKey: Any,
     uiState: BruteforceState,
+    highlightedBounds: Rect?,
     onDrag: (deltaX: Float, deltaY: Float) -> Unit,
     onDragEnd: (Point) -> Unit,
     onStart: () -> Unit,
     onPause: () -> Unit,
     onStop: () -> Unit,
+    onClose: () -> Unit,
     onSelectDictionary: () -> Unit,
     onUpdateLength: (Int) -> Unit,
     onUpdateCharset: (CharacterSetType) -> Unit,
@@ -62,33 +67,56 @@ fun RootOverlay(
     onUpdateSuccessKeywords: (List<String>) -> Unit,
     onUpdateCaptchaKeywords: (List<String>) -> Unit
 ) {
-    when (viewKey) {
-        is NodeType -> {
-            ConfigButtonUi(
-                nodeType = viewKey,
-                uiState = uiState,
-                onDrag = onDrag,
-                onDragEnd = onDragEnd
-            )
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (highlightedBounds != null) {
+            HighlightBox(bounds = highlightedBounds)
         }
-        MAIN_CONTROLLER_KEY -> {
-            MainControllerUi(
-                uiState = uiState,
-                onDrag = onDrag,
-                onStart = onStart,
-                onPause = onPause,
-                onStop = onStop,
-                onSelectDictionary = onSelectDictionary,
-                onUpdateLength = onUpdateLength,
-                onUpdateCharset = onUpdateCharset,
-                onUpdatePace = onUpdatePace,
-                onToggleResume = onToggleResume,
-                onToggleSingleAttemptMode = onToggleSingleAttemptMode,
-                onUpdateSuccessKeywords = onUpdateSuccessKeywords,
-                onUpdateCaptchaKeywords = onUpdateCaptchaKeywords
-            )
+        when (viewKey) {
+            is NodeType -> {
+                ConfigButtonUi(
+                    nodeType = viewKey,
+                    uiState = uiState,
+                    onDrag = onDrag,
+                    onDragEnd = onDragEnd
+                )
+            }
+            MAIN_CONTROLLER_KEY -> {
+                MainControllerUi(
+                    uiState = uiState,
+                    onDrag = onDrag,
+                    onStart = onStart,
+                    onPause = onPause,
+                    onStop = onStop,
+                    onClose = onClose,
+                    onSelectDictionary = onSelectDictionary,
+                    onUpdateLength = onUpdateLength,
+                    onUpdateCharset = onUpdateCharset,
+                    onUpdatePace = onUpdatePace,
+                    onToggleResume = onToggleResume,
+                    onToggleSingleAttemptMode = onToggleSingleAttemptMode,
+                    onUpdateSuccessKeywords = onUpdateSuccessKeywords,
+                    onUpdateCaptchaKeywords = onUpdateCaptchaKeywords
+                )
+            }
         }
     }
+}
+
+@Composable
+fun HighlightBox(bounds: Rect) {
+    val density = LocalDensity.current
+    val x = with(density) { bounds.left.toDp() }
+    val y = with(density) { bounds.top.toDp() }
+    val width = with(density) { bounds.width().toDp() }
+    val height = with(density) { bounds.height().toDp() }
+
+    Box(
+        modifier = Modifier
+            .offset(x, y)
+            .size(width, height)
+            .background(Color.Red.copy(alpha = 0.3f))
+            .border(2.dp, Color.Red)
+    )
 }
 
 @Composable
@@ -98,6 +126,7 @@ fun MainControllerUi(
     onStart: () -> Unit,
     onPause: () -> Unit,
     onStop: () -> Unit,
+    onClose: () -> Unit,
     onSelectDictionary: () -> Unit,
     onUpdateLength: (Int) -> Unit,
     onUpdateCharset: (CharacterSetType) -> Unit,
@@ -126,6 +155,7 @@ fun MainControllerUi(
             onStart = onStart,
             onPause = onPause,
             onStop = onStop,
+            onClose = onClose,
             onShowSettings = { showSettingsDialog = true },
             onSelectDictionary = onSelectDictionary
         )
@@ -225,6 +255,7 @@ private fun ExpandableFabMenu(
     onStart: () -> Unit,
     onPause: () -> Unit,
     onStop: () -> Unit,
+    onClose: () -> Unit,
     onShowSettings: () -> Unit,
     onSelectDictionary: () -> Unit
 ) {
@@ -261,6 +292,11 @@ private fun ExpandableFabMenu(
                 text = "Settings",
                 onClick = onShowSettings
             ),
+            MindMapActionItem(
+                icon = Icons.Default.Close,
+                text = "Close",
+                onClick = onClose
+            )
         )
     }
 
@@ -467,7 +503,7 @@ private fun SuccessConfirmation(
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         Text("Success Detected!", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-        Text("Password Found: $candidate", style = MaterialTheme.typography.bodyMedium)
+        Text("Password Found: $candidate", style = MaterialTheme. typography.bodyMedium)
         Spacer(modifier = Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
             Button(onClick = onConfirm) { Text("Confirm") }
