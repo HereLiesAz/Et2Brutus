@@ -110,6 +110,7 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
 
             setContent {
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                val highlightedBounds by viewModel.highlightedNodeBounds.collectAsStateWithLifecycle()
 
                 RootOverlay(
                     viewKey = viewKey,

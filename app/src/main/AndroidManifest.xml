@@ -47,6 +47,11 @@
 
         android:theme="@style/Theme.Et2BruteForce" />
 
+    <activity
+        android:name=".InstructionActivity"
+        android:exported="false"
+        android:theme="@style/Theme.Et2BruteForce" />
+
     <!-- Floating Control Service -->
     <service
         android:name=".services.FloatingControlService"
@@ -74,4 +79,4 @@
 
     </application>
 
-    </manifest>
+</manifest>
