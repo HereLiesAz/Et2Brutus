@@ -107,7 +107,7 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
                 view.visibility = if (enabled) View.VISIBLE else View.GONE
             } else if (enabled) {
                 // Re-create view if it doesn't exist
-                val initialPos = viewModel.uiState.value.buttonConfigs.getValue(nodeType).position
+                val initialPos = viewModel.uiState.value.buttonConfigs[nodeType]?.position ?: Point(100, 500 + (nodeType.ordinal * 200))
                 createAndAddView(nodeType, initialPos)
             }
         }

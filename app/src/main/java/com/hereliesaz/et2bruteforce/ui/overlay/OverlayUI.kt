@@ -41,6 +41,7 @@ import com.hereliesaz.et2bruteforce.model.BruteforceStatus
 import com.hereliesaz.et2bruteforce.model.CharacterSetType
 import com.hereliesaz.et2bruteforce.R
 import com.hereliesaz.et2bruteforce.model.NodeType
+import com.hereliesaz.et2bruteforce.model.getColor
 import com.hereliesaz.et2bruteforce.services.FloatingControlService.Companion.MAIN_CONTROLLER_KEY
 import com.hereliesaz.et2bruteforce.ui.theme.*
 import kotlin.math.cos
@@ -70,7 +71,7 @@ fun RootOverlay(
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         if (highlightedInfo != null) {
-            HighlightBox(bounds = highlightedInfo.bounds, color = highlightedInfo.color)
+            HighlightBox(bounds = highlightedInfo.bounds, nodeType = highlightedInfo.nodeType)
         }
         when (viewKey) {
             is NodeType -> {
@@ -105,7 +106,8 @@ fun RootOverlay(
 }
 
 @Composable
-fun HighlightBox(bounds: Rect, color: Color) {
+fun HighlightBox(bounds: Rect, nodeType: NodeType) {
+    val color = nodeType.getColor()
     val density = LocalDensity.current
     val x = with(density) { bounds.left.toDp() }
     val y = with(density) { bounds.top.toDp() }
@@ -219,11 +221,7 @@ fun ConfigButtonUi(
                     )
                 },
             containerColor = if (isIdentified) {
-                when (nodeType) {
-                    NodeType.INPUT -> WalkthroughColor5
-                    NodeType.SUBMIT -> WalkthroughColor6
-                    NodeType.POPUP -> WalkthroughColor7
-                }
+                nodeType.getColor()
             } else MaterialTheme.colorScheme.secondaryContainer
         ) {
             val icon = when (nodeType) {
@@ -266,8 +264,9 @@ private fun ExpandableFabMenu(
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     val status = uiState.status
+    val actionButtonsEnabled = uiState.actionButtonsEnabled
 
-    val items = remember(status) {
+    val items = remember(status, actionButtonsEnabled) {
         listOf(
             MindMapActionItem(
                 icon = Icons.Default.PlayArrow,
@@ -298,8 +297,8 @@ private fun ExpandableFabMenu(
                 onClick = onShowSettings
             ),
             MindMapActionItem(
-                icon = Icons.Default.Cancel,
-                text = "Disable Buttons",
+                icon = if (actionButtonsEnabled) Icons.Default.Cancel else Icons.Filled.PlayCircleOutline,
+                text = if (actionButtonsEnabled) "Disable Buttons" else "Enable Buttons",
                 onClick = onToggleActionButtons
             ),
             MindMapActionItem(
@@ -513,7 +512,7 @@ private fun SuccessConfirmation(
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         Text("Success Detected!", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-        Text("Password Found: $candidate", style = MaterialTheme. typography.bodyMedium)
+        Text("Password Found: $candidate", style = MaterialTheme.typography.bodyMedium)
         Spacer(modifier = Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
             Button(onClick = onConfirm) { Text("Confirm") }

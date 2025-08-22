@@ -42,17 +42,6 @@ class WalkthroughActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val walkthroughColors = listOf(
-            WalkthroughColor1,
-            WalkthroughColor2,
-            WalkthroughColor3,
-            WalkthroughColor4,
-            WalkthroughColor5,
-            WalkthroughColor6,
-            WalkthroughColor7,
-            WalkthroughColor8
-        )
-
         val pages = listOf(
             WalkthroughPage("Welcome!", "This app helps you automate repetitive tasks by simulating screen taps.", Icons.Default.Celebration, WalkthroughColor1),
             WalkthroughPage("Permissions", "First, please grant both 'Draw Over Other Apps' and 'Accessibility Service' permissions on the main screen.", Icons.Default.Shield, WalkthroughColor2),
