@@ -114,16 +114,27 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
                 RootOverlay(
                     viewKey = viewKey,
                     uiState = uiState,
-                    onDrag = { deltaX, deltaY -> updateViewPosition(viewKey, deltaX, deltaY) },
+                    onDrag = { deltaX, deltaY ->
+                        if (viewKey is NodeType) {
+                            val currentParams = windowLayoutParams[viewKey]
+                            if (currentParams != null) {
+                                val newPoint = Point(currentParams.x + deltaX.toInt(), currentParams.y + deltaY.toInt())
+                                viewModel.highlightNodeAt(newPoint, viewKey)
+                            }
+                        }
+                        updateViewPosition(viewKey, deltaX, deltaY)
+                    },
                     onDragEnd = { point ->
                         if (viewKey is NodeType) {
                             viewModel.identifyNodeAt(viewKey, point)
                         }
+                        viewModel.clearHighlight()
                     },
                     // Pass all other callbacks for the main controller
                     onStart = viewModel::startBruteforce,
                     onPause = viewModel::pauseBruteforce,
                     onStop = viewModel::stopBruteforce,
+                    onClose = { stopSelf() },
                     onSelectDictionary = {
                         serviceScope.launch {
                             commsManager.requestOpenDictionaryPicker()

@@ -1,10 +1,13 @@
 package com.hereliesaz.et2bruteforce.ui.overlay
 
 import android.graphics.Point
+import android.graphics.Rect
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -53,6 +56,7 @@ fun RootOverlay(
     onStart: () -> Unit,
     onPause: () -> Unit,
     onStop: () -> Unit,
+    onClose: () -> Unit,
     onSelectDictionary: () -> Unit,
     onUpdateLength: (Int) -> Unit,
     onUpdateCharset: (CharacterSetType) -> Unit,
@@ -62,33 +66,56 @@ fun RootOverlay(
     onUpdateSuccessKeywords: (List<String>) -> Unit,
     onUpdateCaptchaKeywords: (List<String>) -> Unit
 ) {
-    when (viewKey) {
-        is NodeType -> {
-            ConfigButtonUi(
-                nodeType = viewKey,
-                uiState = uiState,
-                onDrag = onDrag,
-                onDragEnd = onDragEnd
-            )
+    Box(modifier = Modifier.fillMaxSize()) {
+        uiState.highlightedInfo?.let { info ->
+            HighlightBox(bounds = info.bounds, color = info.color)
         }
-        MAIN_CONTROLLER_KEY -> {
-            MainControllerUi(
-                uiState = uiState,
-                onDrag = onDrag,
-                onStart = onStart,
-                onPause = onPause,
-                onStop = onStop,
-                onSelectDictionary = onSelectDictionary,
-                onUpdateLength = onUpdateLength,
-                onUpdateCharset = onUpdateCharset,
-                onUpdatePace = onUpdatePace,
-                onToggleResume = onToggleResume,
-                onToggleSingleAttemptMode = onToggleSingleAttemptMode,
-                onUpdateSuccessKeywords = onUpdateSuccessKeywords,
-                onUpdateCaptchaKeywords = onUpdateCaptchaKeywords
-            )
+        when (viewKey) {
+            is NodeType -> {
+                ConfigButtonUi(
+                    nodeType = viewKey,
+                    uiState = uiState,
+                    onDrag = onDrag,
+                    onDragEnd = onDragEnd
+                )
+            }
+            MAIN_CONTROLLER_KEY -> {
+                MainControllerUi(
+                    uiState = uiState,
+                    onDrag = onDrag,
+                    onStart = onStart,
+                    onPause = onPause,
+                    onStop = onStop,
+                    onClose = onClose,
+                    onSelectDictionary = onSelectDictionary,
+                    onUpdateLength = onUpdateLength,
+                    onUpdateCharset = onUpdateCharset,
+                    onUpdatePace = onUpdatePace,
+                    onToggleResume = onToggleResume,
+                    onToggleSingleAttemptMode = onToggleSingleAttemptMode,
+                    onUpdateSuccessKeywords = onUpdateSuccessKeywords,
+                    onUpdateCaptchaKeywords = onUpdateCaptchaKeywords
+                )
+            }
         }
     }
+}
+
+@Composable
+fun HighlightBox(bounds: Rect, color: Color) {
+    val density = LocalDensity.current
+    val x = with(density) { bounds.left.toDp() }
+    val y = with(density) { bounds.top.toDp() }
+    val width = with(density) { bounds.width().toDp() }
+    val height = with(density) { bounds.height().toDp() }
+
+    Box(
+        modifier = Modifier
+            .offset(x, y)
+            .size(width, height)
+            .background(color.copy(alpha = 0.3f))
+            .border(2.dp, color)
+    )
 }
 
 @Composable
@@ -98,6 +125,7 @@ fun MainControllerUi(
     onStart: () -> Unit,
     onPause: () -> Unit,
     onStop: () -> Unit,
+    onClose: () -> Unit,
     onSelectDictionary: () -> Unit,
     onUpdateLength: (Int) -> Unit,
     onUpdateCharset: (CharacterSetType) -> Unit,
@@ -126,6 +154,7 @@ fun MainControllerUi(
             onStart = onStart,
             onPause = onPause,
             onStop = onStop,
+            onClose = onClose,
             onShowSettings = { showSettingsDialog = true },
             onSelectDictionary = onSelectDictionary
         )
@@ -186,9 +215,9 @@ fun ConfigButtonUi(
                 },
             containerColor = if (isIdentified) {
                 when (nodeType) {
-                    NodeType.INPUT -> ButtonColor1
-                    NodeType.SUBMIT -> ButtonColor2
-                    NodeType.POPUP -> ButtonColor3
+                    NodeType.INPUT -> WalkthroughColor5
+                    NodeType.SUBMIT -> WalkthroughColor6
+                    NodeType.POPUP -> WalkthroughColor7
                 }
             } else MaterialTheme.colorScheme.secondaryContainer
         ) {
@@ -225,6 +254,7 @@ private fun ExpandableFabMenu(
     onStart: () -> Unit,
     onPause: () -> Unit,
     onStop: () -> Unit,
+    onClose: () -> Unit,
     onShowSettings: () -> Unit,
     onSelectDictionary: () -> Unit
 ) {
@@ -261,6 +291,11 @@ private fun ExpandableFabMenu(
                 text = "Settings",
                 onClick = onShowSettings
             ),
+            MindMapActionItem(
+                icon = Icons.Default.Close,
+                text = "Close",
+                onClick = onClose
+            )
         )
     }
 
