@@ -135,6 +135,13 @@ class BruteforceAccessibilityService : AccessibilityService() {
                 serviceScope.launch { identifyAndReportNode(request.coordinates, request.nodeType, request.requestId) }
             }
             .launchIn(serviceScope)
+        // Node highlight
+        commsManager.nodeHighlightRequest
+            .onEach { request ->
+                Log.d(TAG, "Rcv: Highlight [${request.requestId}] @ ${request.coordinates}")
+                serviceScope.launch { highlightAndReportNode(request.coordinates, request.requestId) }
+            }
+            .launchIn(serviceScope)
         // Input text
         commsManager.inputTextRequest
             .onEach { request ->
@@ -191,6 +198,13 @@ class BruteforceAccessibilityService : AccessibilityService() {
 
         if (foundNodeInfo == null) Log.w(TAG, "Identify [${requestId}] FAILED for $nodeType @ $coordinates")
         else Log.i(TAG, "Identify [${requestId}] OK for $nodeType: ${foundNodeInfo.viewIdResourceName ?: "(no id)"}")
+    }
+
+    private suspend fun highlightAndReportNode(coordinates: Point, requestId: String) {
+        val foundNodeInfo: NodeInfo? = findNodeAt(coordinates.x, coordinates.y) { true } // Find any node
+        commsManager.reportNodeHighlighted(requestId, foundNodeInfo?.boundsInScreen)
+        if (foundNodeInfo == null) Log.w(TAG, "Highlight [${requestId}] FAILED @ $coordinates")
+        else Log.i(TAG, "Highlight [${requestId}] OK: ${foundNodeInfo.viewIdResourceName ?: "(no id)"}")
     }
 
 
