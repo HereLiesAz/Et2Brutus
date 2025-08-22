@@ -19,7 +19,15 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.et2bruteforce.data.SettingsRepository
-import com.hereliesaz.et2bruteforce.ui.theme.*
+import com.hereliesaz.et2bruteforce.ui.theme.Et2BruteForceTheme
+import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor1
+import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor2
+import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor3
+import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor4
+import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor5
+import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor6
+import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor7
+import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor8
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -46,14 +54,14 @@ class WalkthroughActivity : ComponentActivity() {
         )
 
         val pages = listOf(
-            WalkthroughPage("Welcome!", "This app helps you automate repetitive tasks by simulating screen taps.", Icons.Default.Celebration, walkthroughColors[0]),
-            WalkthroughPage("Permissions", "First, please grant both 'Draw Over Other Apps' and 'Accessibility Service' permissions on the main screen.", Icons.Default.Shield, walkthroughColors[1]),
-            WalkthroughPage("The Shortcut", "Press (Ctrl + G) on a physical keyboard to show or hide the floating menu at any time.", Icons.Default.Keyboard, walkthroughColors[2]),
-            WalkthroughPage("The Menu", "Tap the floating dagger icon to open the menu. You can drag the icon anywhere on the screen.", Icons.Default.Menu, walkthroughColors[3]),
-            WalkthroughPage("Identify Input", "Drag the 'Input' button over the text field where the app should type (e.g., a password field).", Icons.Default.TextFields, walkthroughColors[4]),
-            WalkthroughPage("Identify Submit", "Drag the 'Submit' button over the button that submits the form (e.g., a 'Login' button).", Icons.Default.ArrowForward, walkthroughColors[5]),
-            WalkthroughPage("Identify Popups", "If a popup appears after a failed attempt, drag the 'Popup' button over the button that closes it (e.g., 'OK').", Icons.Default.Warning, walkthroughColors[6]),
-            WalkthroughPage("You're All Set!", "Once the 'Input' and 'Submit' buttons have identified their targets, you can start the process from the menu.", Icons.Default.CheckCircle, walkthroughColors[7])
+            WalkthroughPage("Welcome!", "This app helps you automate repetitive tasks by simulating screen taps.", Icons.Default.Celebration, WalkthroughColor1),
+            WalkthroughPage("Permissions", "First, please grant both 'Draw Over Other Apps' and 'Accessibility Service' permissions on the main screen.", Icons.Default.Shield, WalkthroughColor2),
+            WalkthroughPage("The Shortcut", "Press (Ctrl + G) on a physical keyboard to show or hide the floating menu at any time.", Icons.Default.Keyboard, WalkthroughColor3),
+            WalkthroughPage("The Menu", "Tap the floating dagger icon to open the menu. You can drag the icon anywhere on the screen.", Icons.Default.Menu, WalkthroughColor4),
+            WalkthroughPage("Identify Input", "Drag the 'Input' button over the text field where the app should type (e.g., a password field).", Icons.Default.TextFields, WalkthroughColor5),
+            WalkthroughPage("Identify Submit", "Drag the 'Submit' button over the button that submits the form (e.g., a 'Login' button).", Icons.Default.ArrowForward, WalkthroughColor6),
+            WalkthroughPage("Identify Popups", "If a popup appears after a failed attempt, drag the 'Popup' button over the button that closes it (e.g., 'OK').", Icons.Default.Warning, WalkthroughColor7),
+            WalkthroughPage("You're All Set!", "Once the 'Input' and 'Submit' buttons have identified their targets, you can start the process from the menu.", Icons.Default.CheckCircle, WalkthroughColor8)
         )
 
         setContent {

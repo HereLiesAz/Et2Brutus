@@ -68,8 +68,8 @@ fun RootOverlay(
     onUpdateCaptchaKeywords: (List<String>) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
-        if (highlightedBounds != null) {
-            HighlightBox(bounds = highlightedBounds)
+        uiState.highlightedInfo?.let { info ->
+            HighlightBox(bounds = info.bounds, color = info.color)
         }
         when (viewKey) {
             is NodeType -> {
@@ -103,7 +103,7 @@ fun RootOverlay(
 }
 
 @Composable
-fun HighlightBox(bounds: Rect) {
+fun HighlightBox(bounds: Rect, color: Color) {
     val density = LocalDensity.current
     val x = with(density) { bounds.left.toDp() }
     val y = with(density) { bounds.top.toDp() }
@@ -114,8 +114,8 @@ fun HighlightBox(bounds: Rect) {
         modifier = Modifier
             .offset(x, y)
             .size(width, height)
-            .background(Color.Red.copy(alpha = 0.3f))
-            .border(2.dp, Color.Red)
+            .background(color.copy(alpha = 0.3f))
+            .border(2.dp, color)
     )
 }
 
@@ -216,9 +216,9 @@ fun ConfigButtonUi(
                 },
             containerColor = if (isIdentified) {
                 when (nodeType) {
-                    NodeType.INPUT -> ButtonColor1
-                    NodeType.SUBMIT -> ButtonColor2
-                    NodeType.POPUP -> ButtonColor3
+                    NodeType.INPUT -> WalkthroughColor5
+                    NodeType.SUBMIT -> WalkthroughColor6
+                    NodeType.POPUP -> WalkthroughColor7
                 }
             } else MaterialTheme.colorScheme.secondaryContainer
         ) {

@@ -115,12 +115,13 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
                 RootOverlay(
                     viewKey = viewKey,
                     uiState = uiState,
-                    highlightedBounds = highlightedBounds,
                     onDrag = { deltaX, deltaY ->
-                        val currentParams = windowLayoutParams[viewKey]
-                        if (currentParams != null) {
-                            val newPoint = Point(currentParams.x + deltaX.toInt(), currentParams.y + deltaY.toInt())
-                            viewModel.highlightNodeAt(newPoint)
+                        if (viewKey is NodeType) {
+                            val currentParams = windowLayoutParams[viewKey]
+                            if (currentParams != null) {
+                                val newPoint = Point(currentParams.x + deltaX.toInt(), currentParams.y + deltaY.toInt())
+                                viewModel.highlightNodeAt(newPoint, viewKey)
+                            }
                         }
                         updateViewPosition(viewKey, deltaX, deltaY)
                     },
