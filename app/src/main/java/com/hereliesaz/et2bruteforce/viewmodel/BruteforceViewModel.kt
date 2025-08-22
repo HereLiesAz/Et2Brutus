@@ -1,6 +1,7 @@
 package com.hereliesaz.et2bruteforce.viewmodel
 
 import android.graphics.Point
+import android.graphics.Rect
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -33,6 +34,9 @@ class BruteforceViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(BruteforceState())
     val uiState: StateFlow<BruteforceState> = _uiState.asStateFlow()
 
+    private val _highlightedNodeBounds = MutableStateFlow<Rect?>(null)
+    val highlightedNodeBounds: StateFlow<Rect?> = _highlightedNodeBounds.asStateFlow()
+
     private var bruteforceJob: Job? = null
 
     init {
@@ -49,6 +53,13 @@ class BruteforceViewModel @Inject constructor(
             .onEach { event ->
                 Log.d(TAG, "Received NodeIdentifiedEvent [${event.requestId}]: ${event.nodeType}, Success: ${event.nodeInfo != null}")
                 handleNodeIdentificationResult(event)
+            }
+            .launchIn(viewModelScope)
+
+        commsManager.nodeHighlightedEvent
+            .onEach { event ->
+                Log.d(TAG, "Received NodeHighlightedEvent [${event.requestId}]: Success: ${event.bounds != null}")
+                _highlightedNodeBounds.value = event.bounds
             }
             .launchIn(viewModelScope)
         // No need for active listeners for ActionCompleted or AnalysisResult here
@@ -162,6 +173,18 @@ class BruteforceViewModel @Inject constructor(
         viewModelScope.launch {
             commsManager.requestNodeIdentification(NodeIdentificationRequest(point, nodeType, requestId))
         }
+    }
+
+    fun highlightNodeAt(point: Point) {
+        val requestId = generateRequestId()
+        Log.d(TAG, "Requesting node highlight at $point [${requestId}]")
+        viewModelScope.launch {
+            commsManager.requestNodeHighlight(HighlightNodeRequest(point, requestId))
+        }
+    }
+
+    fun clearHighlight() {
+        _highlightedNodeBounds.value = null
     }
 
     // --- Bruteforce Action Methods ---
