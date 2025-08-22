@@ -1,4 +1,4 @@
-# Screen Bruteforcer
+# Et2Brutus
 
 This app allows you to automate repetitive tasks on your screen using a floating controller. It uses Android's Accessibility Service to programmatically click on the screen.
 
