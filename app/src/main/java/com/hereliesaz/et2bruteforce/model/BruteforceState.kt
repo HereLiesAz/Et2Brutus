@@ -65,5 +65,5 @@ data class BruteforceState(
     val dictionaryLoadProgress: Float = 0f, // 0.0 to 1.0 for dictionary loading
     val errorMessage: String? = null,
     val successCandidate: String? = null, // Holds the string that triggered success detection
-    val highlightedInfo: com.hereliesaz.et2bruteforce.viewmodel.HighlightInfo? = null
+    val highlightedInfo: HighlightInfo? = null
 )

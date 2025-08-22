@@ -19,13 +19,13 @@ data class InputTextRequest(val targetNodeInfo: NodeInfo, val text: String, val 
 data class ClickNodeRequest(val targetNodeInfo: NodeInfo, val requestId: String)
 data class AnalyzeScreenRequest(val successKeywords: List<String>, val captchaKeywords: List<String>, val requestId: String)
 data class NodeIdentificationRequest(val coordinates: Point, val nodeType: NodeType, val requestId: String)
-data class HighlightNodeRequest(val coordinates: Point, val requestId: String)
+data class HighlightNodeRequest(val coordinates: Point, val nodeType: NodeType, val requestId: String)
 
 // Events must also carry the requestId for correlation
 data class ActionCompletedEvent(val requestId: String, val success: Boolean)
 data class NodeIdentifiedEvent(val requestId: String, val nodeInfo: NodeInfo?, val nodeType: NodeType) // Uses NodeType
 data class AnalysisResultEvent(val requestId: String, val result: ScreenAnalysisResult)
-data class NodeHighlightedEvent(val requestId: String, val bounds: Rect?)
+data class NodeHighlightedEvent(val requestId: String, val bounds: Rect?, val nodeType: NodeType)
 
 
 // Helper function remains the same, but caller needs to use it
@@ -95,8 +95,8 @@ class AccessibilityCommsManager @Inject constructor() {
         _analysisResultEvent.emit(AnalysisResultEvent(requestId, result))
     }
 
-    suspend fun reportNodeHighlighted(requestId: String, bounds: Rect?) {
-        _nodeHighlightedEvent.emit(NodeHighlightedEvent(requestId, bounds))
+    suspend fun reportNodeHighlighted(requestId: String, bounds: Rect?, nodeType: NodeType) {
+        _nodeHighlightedEvent.emit(NodeHighlightedEvent(requestId, bounds, nodeType))
     }
 
     // --- Flows and Methods for UI -> Activity Communication ---
