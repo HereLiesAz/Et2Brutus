@@ -9,9 +9,9 @@ This document provides a detailed breakdown of the files in the Et2Brutus projec
 **Purpose:** This file is a guide for AI agents working on the project. It provides an overview of the project's architecture, development conventions, and how to run tests.
 
 **Key Information:**
--   **Architecture:** Describes the multi-module Gradle project structure, which is currently outdated as the project is a single-module app.
--   **Development Conventions:** Outlines procedures for adding new features and updating the `CHANGELOG.md`.
--   **Testing:** Provides the command for running unit tests: `./gradlew :app_android:test`, which is also outdated and should be `./gradlew :app:test`.
+-   **Architecture:** Describes the project as a single-module Android application using Gradle, Kotlin, Jetpack Compose, and Dagger Hilt.
+-   **Development Conventions:** Outlines procedures for building the project and running tests.
+-   **Testing:** Provides the command for running unit tests: `./gradlew :app:test`.
 
 ---
 

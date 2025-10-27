@@ -6,9 +6,25 @@
         <string name="accessibility_service_description">Allows Et2Brutus to interact with UI elements on screen for automated input.</string> <!-- Used in config xml -->
     <string name="instructions_label">Instructions</string>
     <string name="instructions_text">
-        1. Grant both \'Draw Over Other Apps\' and \'Accessibility Service\' permissions above.\n\n
-        2. Press (Ctrl + G) on a physical keyboard to show/hide the floating controller.\n\n
-        3. Use the floating controller to record and play back taps. (Functionality in development).
+        "Welcome to Screen Bruteforcer! Here's how to get started:\n\n"
+        "1. Grant Permissions:\n"
+        "   - The app needs two permissions to work. Please grant both 'Draw Over Other Apps' and 'Accessibility Service' on the main screen.\n\n"
+        "2. The Floating Button:\n"
+        "   - Press (Ctrl + G) on a physical keyboard to show or hide the main floating button.\n"
+        "   - You can drag this button anywhere on the screen. The app will remember its position.\n\n"
+        "3. Using the Menu:\n"
+        "   - Tap the floating button to open the menu.\n"
+        "   - 'Start': Begins the bruteforce process.\n"
+        "   - 'Pause': Pauses the current process.\n"
+        "   - 'Stop': Stops the process and resets.\n"
+        "   - 'Dictionary': Select a dictionary file for the bruteforce.\n"
+        "   - 'Settings': Configure advanced options like password length and character set.\n\n"
+        "4. Identifying UI Elements:\n"
+        "   - To tell the app where to type and what to click, you need to position the smaller config buttons.\n"
+        "   - 'Input': Drag this button over the text field where the app should type (e.g., a password field).\n"
+        "   - 'Submit': Drag this over the button that submits the form (e.g., a 'Login' or 'Go' button).\n"
+        "   - 'Popup': If a popup appears after a failed attempt (e.g., 'Incorrect password'), drag this over the button that closes the popup (e.g., an 'OK' button).\n"
+        "   - When a button has successfully identified a UI element, it will change color."
     </string>
     <string name="title_activity_instruction">Instructions</string>
     <string name="detailed_instructions">
@@ -32,4 +48,34 @@
         "   - 'Popup': If a popup appears after a failed attempt (e.g., 'Incorrect password'), drag this over the button that closes the popup (e.g., an 'OK' button).\n"
         "   - When a button has successfully identified a UI element, it will change color."
     </string>
+    <string name="main_overlay_permission_toast">Overlay permission is required for the floating controls.</string>
+    <string name="main_overlay_permission_granted">Overlay permission granted.</string>
+    <string name="main_dictionary_selected">Dictionary selected.</string>
+    <string name="main_dictionary_error">Error selecting dictionary.</string>
+    <string name="main_overlay_permission_implicit">Overlay permission is implicitly granted on this Android version.</string>
+    <string name="main_overlay_permission_already_granted">Overlay permission already granted.</string>
+    <string name="main_accessibility_permission_toast">Please enable the \'%s\' in Accessibility settings.</string>
+    <string name="main_overlay_permission_required">Overlay permission required first.</string>
+    <string name="main_accessibility_permission_required">Accessibility Service required first.</string>
+    <string name="main_service_started">Floating service started.</string>
+    <string name="main_service_stopped">Floating service stopped.</string>
+    <string name="main_setup_title">Screen Bruteforcer Setup</string>
+    <string name="main_view_instructions">View Full Instructions</string>
+    <string name="main_permissions_required">Permissions Required:</string>
+    <string name="main_draw_over_apps">Draw Over Other Apps:</string>
+    <string name="main_granted">GRANTED</string>
+    <string name="main_needed">Needed</string>
+    <string name="main_request">Request</string>
+    <string name="main_accessibility_service">Accessibility Service:</string>
+    <string name="main_enabled">ENABLED</string>
+    <string name="main_go_to_settings">Go To Settings</string>
+    <string name="main_recheck_permissions">Re-Check Permissions</string>
+    <string name="main_service_control">Service Control:</string>
+    <string name="main_start_service">Start Service</string>
+    <string name="main_stop_service">Stop Service</string>
+    <string name="main_service_info">Enable permissions, then start the service. A floating button will appear.</string>
+    <string name="accessibility_shortcut_toast">Shortcut detected, service starting...</string>
+    <string name="main_configuration">Configuration</string>
+    <string name="main_save_configuration">Save</string>
+    <string name="main_load_configuration">Load</string>
 </resources>
