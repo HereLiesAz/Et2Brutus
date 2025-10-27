@@ -10,6 +10,7 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.content.Intent
 import android.view.KeyEvent
+import android.widget.Toast
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import com.hereliesaz.et2bruteforce.comms.AccessibilityCommsManager
 import com.hereliesaz.et2bruteforce.model.NodeType
@@ -18,10 +19,19 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.serialization.Serializable
 
 /**
  * Data class holding descriptive information about a UI element found by the service.
  */
+@Serializable
+data class ParentInfo(
+    val className: CharSequence?,
+    val contentDescription: CharSequence?,
+    val viewIdResourceName: String?
+)
+
+@Serializable
 data class NodeInfo(
     val className: CharSequence?,
     val text: CharSequence?,
@@ -31,6 +41,7 @@ data class NodeInfo(
     val isClickable: Boolean,
     val isEditable: Boolean,
     val isPassword: Boolean,
+    val parentInfo: ParentInfo?
 )
 
 /**
@@ -105,6 +116,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
             event.keyCode == KeyEvent.KEYCODE_G
         ) {
             Log.d(TAG, "Ctrl+G detected, starting floating service.")
+            Toast.makeText(this, getString(R.string.accessibility_shortcut_toast), Toast.LENGTH_SHORT).show()
             val intent = Intent(this, FloatingControlService::class.java)
             startService(intent)
             return true // Event handled
@@ -348,6 +360,16 @@ class BruteforceAccessibilityService : AccessibilityService() {
         bestMatchNode?.let { node ->
             val nodeBounds = Rect()
             node.getBoundsInScreen(nodeBounds) // Get bounds again
+            val parent = node.parent
+            val parentInfo = if (parent != null) {
+                ParentInfo(
+                    className = parent.className,
+                    contentDescription = parent.contentDescription,
+                    viewIdResourceName = parent.viewIdResourceName
+                )
+            } else {
+                null
+            }
             NodeInfo(
                 className = node.className,
                 text = node.text,
@@ -356,7 +378,8 @@ class BruteforceAccessibilityService : AccessibilityService() {
                 boundsInScreen = nodeBounds,
                 isClickable = node.isClickable,
                 isEditable = node.isEditable,
-                isPassword = node.isPassword
+                isPassword = node.isPassword,
+                parentInfo = parentInfo
             )
         } // Implicitly returns null if bestMatchNode is null
     }
@@ -402,44 +425,48 @@ class BruteforceAccessibilityService : AccessibilityService() {
      * Recursive helper for findFreshNode (Strategy 2). Runs within caller's context.
      */
     private fun findNodeRecursiveViaProperties(node: AccessibilityNodeInfo?, target: NodeInfo): AccessibilityNodeInfo? {
-        if (node == null || !serviceScope.isActive) return null // Base case and cancellation check
+        if (node == null || !serviceScope.isActive) return null
 
-        // Wrap node for safe property access
-        val nodeCompat = AccessibilityNodeInfoCompat.wrap(node)
-        val currentBounds = Rect()
-        nodeCompat.getBoundsInScreen(currentBounds)
+        val candidates = mutableListOf<Pair<AccessibilityNodeInfo, Int>>()
 
-        // Define matching criteria (tune as needed)
-        val classMatch = node.className == target.className
-        val clickableMatch = node.isClickable == target.isClickable
-        val editableMatch = node.isEditable == target.isEditable
-        // Allow match if target didn't have an ID, or if IDs match
-        val idMatch = target.viewIdResourceName == null || node.viewIdResourceName == target.viewIdResourceName
-        // Bounds check: simple intersection is a basic check
-        val boundsOverlap = Rect.intersects(currentBounds, target.boundsInScreen)
-
-        // Check if this node is a likely match
-        if (classMatch && clickableMatch && editableMatch && idMatch && boundsOverlap) {
-            Log.d(TAG, "findNodeRecursiveViaProperties: Potential match: ID=${node.viewIdResourceName}")
-            return node // Found a likely match
+        fun calculateScore(candidate: AccessibilityNodeInfo, target: NodeInfo): Int {
+            var score = 0
+            if (candidate.viewIdResourceName == target.viewIdResourceName) score += 10
+            if (candidate.className == target.className) score += 2
+            if (candidate.text == target.text) score += 5
+            if (candidate.contentDescription == target.contentDescription) score += 5
+            if (candidate.isClickable == target.isClickable) score += 1
+            if (candidate.isEditable == target.isEditable) score += 1
+            if (candidate.parent?.className == target.parentInfo?.className) score += 3
+            if (candidate.parent?.viewIdResourceName == target.parentInfo?.viewIdResourceName) score += 5
+            return score
         }
 
-        // If not this node, recurse through children
-        for (i in 0 until nodeCompat.childCount) {
-            if (!serviceScope.isActive) {
-                break // Check cancellation before recursing
+        fun findRecursive(currentNode: AccessibilityNodeInfo) {
+            if (!serviceScope.isActive) return
+
+            val currentBounds = Rect()
+            currentNode.getBoundsInScreen(currentBounds)
+            if (!Rect.intersects(currentBounds, target.boundsInScreen)) {
+                return
             }
-            val child = nodeCompat.getChild(i)
-            val foundInChild = findNodeRecursiveViaProperties(child?.unwrap(), target) // Recurse with original node
-            if (foundInChild != null) {
-                // child?.recycle() // Don't recycle if returning parent (foundInChild)
-                return foundInChild // Return immediately if found
+
+            val score = calculateScore(currentNode, target)
+            if (score > 0) {
+                candidates.add(currentNode to score)
             }
-            // child?.recycle() // Simplified: Omit recycling
+
+            for (i in 0 until currentNode.childCount) {
+                val child = currentNode.getChild(i)
+                if (child != null) {
+                    findRecursive(child)
+                }
+            }
         }
 
-        // Not found in this subtree
-        return null
+        findRecursive(node)
+
+        return candidates.maxByOrNull { it.second }?.first
     }
 
 
