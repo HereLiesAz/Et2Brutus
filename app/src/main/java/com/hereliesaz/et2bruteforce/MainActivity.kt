@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,10 +21,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.hereliesaz.et2bruteforce.ui.theme.PermissionGranted
+import com.hereliesaz.et2bruteforce.ui.theme.PermissionDenied
 import com.hereliesaz.et2bruteforce.services.BruteforceAccessibilityService
 import com.hereliesaz.et2bruteforce.comms.AccessibilityCommsManager
 import com.hereliesaz.et2bruteforce.services.FloatingControlService
 import com.hereliesaz.et2bruteforce.ui.theme.Et2BruteForceTheme
+import com.hereliesaz.et2bruteforce.viewmodel.BruteforceViewModel
 import android.view.KeyEvent
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -39,6 +43,8 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var settingsRepository: SettingsRepository
+
+    private val viewModel: BruteforceViewModel by viewModels()
 
     // ActivityResultLauncher for SYSTEM_ALERT_WINDOW permission
     private val overlayPermissionLauncher = registerForActivityResult(
@@ -97,6 +103,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             Et2BruteForceTheme {
                 MainScreen(
+                    viewModel = viewModel,
                     onRequestOverlayPermission = ::requestOverlayPermission,
                     onCheckAccessibilityPermission = ::isAccessibilityServiceEnabled,
                     onRequestAccessibilityPermission = ::requestAccessibilityPermission,
@@ -166,6 +173,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainScreen(
+    viewModel: BruteforceViewModel,
     onRequestOverlayPermission: () -> Unit,
     onCheckAccessibilityPermission: () -> Boolean,
     onRequestAccessibilityPermission: () -> Unit,
@@ -190,81 +198,106 @@ fun MainScreen(
                 .fillMaxSize()
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(stringResource(R.string.main_setup_title), style = MaterialTheme.typography.headlineMedium)
-            Spacer(modifier = Modifier.height(16.dp))
+
+            Card {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(stringResource(R.string.main_permissions_required), style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    PermissionRow(
+                        permissionName = stringResource(R.string.main_draw_over_apps),
+                        isGranted = hasOverlayPerm,
+                        onRequestPermission = onRequestOverlayPermission
+                    )
+
+                    PermissionRow(
+                        permissionName = stringResource(R.string.main_accessibility_service),
+                        isGranted = hasAccessPerm,
+                        onRequestPermission = onRequestAccessibilityPermission
+                    )
+
+                    Button(onClick = refreshPermissions) {
+                        Text(stringResource(R.string.main_recheck_permissions))
+                    }
+                }
+            }
+
+            Card {
+                Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(stringResource(R.string.main_service_control), style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Button(onClick = onStartService, enabled = hasOverlayPerm && hasAccessPerm) {
+                            Text(stringResource(R.string.main_start_service))
+                        }
+                        Button(onClick = onStopService) {
+                            Text(stringResource(R.string.main_stop_service))
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        stringResource(R.string.main_service_info),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                }
+            }
+
             Button(onClick = {
                 context.startActivity(Intent(context, InstructionActivity::class.java))
             }) {
                 Text(stringResource(R.string.main_view_instructions))
             }
-            Spacer(modifier = Modifier.height(24.dp))
 
-            Text(stringResource(R.string.main_permissions_required))
-            Spacer(modifier = Modifier.height(8.dp))
+            Card {
+                Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(stringResource(R.string.main_configuration), style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(16.dp))
 
-            // Overlay Permission
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.main_draw_over_apps))
-                Text(if (hasOverlayPerm) stringResource(R.string.main_granted) else stringResource(R.string.main_needed), color = if (hasOverlayPerm) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(onClick = onRequestOverlayPermission, enabled = !hasOverlayPerm) {
-                    Text(stringResource(R.string.main_request))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Button(onClick = { viewModel.saveConfiguration() }) {
+                            Text(stringResource(R.string.main_save_configuration))
+                        }
+                        Button(onClick = { viewModel.loadConfiguration() }) {
+                            Text(stringResource(R.string.main_load_configuration))
+                        }
+                    }
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
 
-            // Accessibility Permission
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.main_accessibility_service))
-                Text(if (hasAccessPerm) stringResource(R.string.main_enabled) else stringResource(R.string.main_needed), color = if (hasAccessPerm) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(onClick = onRequestAccessibilityPermission, enabled = !hasAccessPerm) {
-                    Text(stringResource(R.string.main_go_to_settings))
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = ::refreshPermissions) {
-                Text(stringResource(R.string.main_recheck_permissions))
-            }
-
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Text(stringResource(R.string.main_service_control))
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                Button(onClick = onStartService, enabled = hasOverlayPerm && hasAccessPerm) {
-                    Text(stringResource(R.string.main_start_service))
-                }
-                Button(onClick = onStopService) {
-                    Text(stringResource(R.string.main_stop_service))
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                stringResource(R.string.main_service_info),
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Text(
-                text = stringResource(id = R.string.instructions_label),
-                style = MaterialTheme.typography.titleMedium
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(id = R.string.instructions_text),
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
+@Composable
+fun PermissionRow(
+    permissionName: String,
+    isGranted: Boolean,
+    onRequestPermission: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(permissionName)
+        Text(
+            text = if (isGranted) stringResource(R.string.main_granted) else stringResource(R.string.main_needed),
+            color = if (isGranted) PermissionGranted else PermissionDenied
+        )
+        Button(onClick = onRequestPermission, enabled = !isGranted) {
+            Text(if (isGranted) stringResource(R.string.main_granted) else stringResource(R.string.main_request))
         }
     }
 }

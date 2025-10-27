@@ -19,6 +19,8 @@ import com.hereliesaz.et2bruteforce.model.NodeType
 import kotlinx.coroutines.delay
 import com.hereliesaz.et2bruteforce.services.NodeInfo
 import com.hereliesaz.et2bruteforce.services.ScreenAnalysisResult
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor5
 import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor6
 import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor7
@@ -53,6 +55,24 @@ class BruteforceViewModel @Inject constructor(
             }
         }
         observeAccessibilityEvents()
+        loadConfiguration()
+    }
+
+    fun saveConfiguration() {
+        viewModelScope.launch {
+            val config = Json.encodeToString(_uiState.value.buttonConfigs)
+            settingsRepository.saveAutomationConfig(config)
+        }
+    }
+
+    fun loadConfiguration() {
+        viewModelScope.launch {
+            settingsRepository.automationConfigFlow.first()?.let { config ->
+                val buttonConfigs = Json.decodeFromString<Map<NodeType, BruteforceState.ButtonConfig>>(config)
+                _uiState.update { it.copy(buttonConfigs = buttonConfigs) }
+                checkIfReady()
+            }
+        }
     }
 
     private fun observeAccessibilityEvents() {
