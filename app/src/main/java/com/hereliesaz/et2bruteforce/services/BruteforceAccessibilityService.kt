@@ -10,6 +10,7 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.content.Intent
 import android.view.KeyEvent
+import android.widget.Toast
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import com.hereliesaz.et2bruteforce.comms.AccessibilityCommsManager
 import com.hereliesaz.et2bruteforce.model.NodeType
@@ -105,6 +106,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
             event.keyCode == KeyEvent.KEYCODE_G
         ) {
             Log.d(TAG, "Ctrl+G detected, starting floating service.")
+            Toast.makeText(this, getString(R.string.accessibility_shortcut_toast), Toast.LENGTH_SHORT).show()
             val intent = Intent(this, FloatingControlService::class.java)
             startService(intent)
             return true // Event handled
