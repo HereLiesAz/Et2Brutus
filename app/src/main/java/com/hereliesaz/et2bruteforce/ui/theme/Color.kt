@@ -24,6 +24,10 @@ val ButtonColor3 = Color(0xFFFFB74D) // Muted Orange
 val ButtonColor4 = Color(0xFFF06292) // Muted Pink
 val ButtonColor5 = Color(0xFFA1887F) // Muted Brown
 
+// Colors for permission status
+val PermissionGranted = Color(0xFF4CAF50) // Green
+val PermissionDenied = Color(0xFFF44336) // Red
+
 // Distinct colors for walkthrough icons
 val WalkthroughColor1 = Color(0xFF4DD0E1) // Cyan
 val WalkthroughColor2 = Color(0xFFBA68C8) // Purple

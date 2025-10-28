@@ -1,163 +1,152 @@
 package com.hereliesaz.et2bruteforce.data
 
 import android.content.Context
-import android.net.Uri
-import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
-import com.hereliesaz.et2bruteforce.model.BruteforceSettings
-import com.hereliesaz.et2bruteforce.model.CharacterSetType
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
-
-// Define DataStore instance at the top level
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "bruteforce_settings")
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 @Singleton
-class SettingsRepository @Inject constructor(
-    @ApplicationContext private val context: Context
-) {
-    private val dataStore = context.dataStore
+class SettingsRepository @Inject constructor(@ApplicationContext private val context: Context) {
 
-    companion object {
-        private const val TAG = "SettingsRepository"
-        // Define keys for DataStore preferences
-        private val KEY_CHAR_LENGTH = intPreferencesKey("char_length")
-        private val KEY_CHAR_SET_TYPE = stringPreferencesKey("char_set_type")
-        private val KEY_DICT_URI = stringPreferencesKey("dict_uri")
-        private val KEY_ATTEMPT_PACE = longPreferencesKey("attempt_pace")
-        private val KEY_RESUME_LAST = booleanPreferencesKey("resume_last")
-        private val KEY_SINGLE_ATTEMPT_MODE = booleanPreferencesKey("single_attempt_mode")
-        private val KEY_LAST_ATTEMPT = stringPreferencesKey("last_attempt")
-        private val KEY_SUCCESS_KEYWORDS = stringSetPreferencesKey("success_keywords")
-        private val KEY_CAPTCHA_KEYWORDS = stringSetPreferencesKey("captcha_keywords")
-
-        // Keys for controller position
-        private val KEY_CONTROLLER_POS_X = intPreferencesKey("controller_pos_x")
-        private val KEY_CONTROLLER_POS_Y = intPreferencesKey("controller_pos_y")
-        private val KEY_WALKTHROUGH_COMPLETED = booleanPreferencesKey("walkthrough_completed")
-
+    private object PreferencesKeys {
+        val AUTOMATION_CONFIG = stringPreferencesKey("automation_config")
+        val CHARACTER_LENGTH = intPreferencesKey("character_length")
+        val CHARACTER_SET_TYPE = stringPreferencesKey("character_set_type")
+        val DICTIONARY_URI = stringPreferencesKey("dictionary_uri")
+        val ATTEMPT_PACE_MILLIS = longPreferencesKey("attempt_pace_millis")
+        val RESUME_FROM_LAST = booleanPreferencesKey("resume_from_last")
+        val SINGLE_ATTEMPT_MODE = booleanPreferencesKey("single_attempt_mode")
+        val LAST_ATTEMPT = stringPreferencesKey("last_attempt")
+        val SUCCESS_KEYWORDS = stringSetPreferencesKey("success_keywords")
+        val CAPTCHA_KEYWORDS = stringSetPreferencesKey("captcha_keywords")
+        val CONTROLLER_POSITION_X = intPreferencesKey("controller_position_x")
+        val CONTROLLER_POSITION_Y = intPreferencesKey("controller_position_y")
+        val WALKTHROUGH_COMPLETED = booleanPreferencesKey("walkthrough_completed")
+        val MASK = stringPreferencesKey("mask")
+        val HYBRID_MODE_ENABLED = booleanPreferencesKey("hybrid_mode_enabled")
+        val HYBRID_SUFFIXES = stringSetPreferencesKey("hybrid_suffixes")
     }
 
-    val settingsFlow: Flow<BruteforceSettings> = dataStore.data
-        .catch { exception ->
-            // Handle errors reading DataStore, e.g., IOException
-            Log.e(TAG, "Error reading settings", exception)
-            if (exception is IOException) {
-                emit(emptyPreferences()) // Emit empty preferences on error
-            } else {
-                throw exception // Rethrow other exceptions
-            }
-        }
+    val settingsFlow: Flow<BruteforceSettings> = context.dataStore.data
         .map { preferences ->
-            // Map Preferences to BruteforceSettings data class
-            val charLength = preferences[KEY_CHAR_LENGTH] ?: 4
-            val charSetType = CharacterSetType.valueOf(
-                preferences[KEY_CHAR_SET_TYPE] ?: CharacterSetType.ALPHANUMERIC_SPECIAL.name
-            )
-            val dictUri = preferences[KEY_DICT_URI]
-            val attemptPace = preferences[KEY_ATTEMPT_PACE] ?: 100L
-            val resumeLast = preferences[KEY_RESUME_LAST] ?: true
-            val singleAttemptMode = preferences[KEY_SINGLE_ATTEMPT_MODE] ?: false
-            val lastAttempt = preferences[KEY_LAST_ATTEMPT]
-            val successKeywords = preferences[KEY_SUCCESS_KEYWORDS]?.toList() ?: BruteforceSettings().successKeywords
-            val captchaKeywords = preferences[KEY_CAPTCHA_KEYWORDS]?.toList() ?: BruteforceSettings().captchaKeywords
-            val controllerX = preferences[KEY_CONTROLLER_POS_X] ?: 100
-            val controllerY = preferences[KEY_CONTROLLER_POS_Y] ?: 300
-            val walkthroughCompleted = preferences[KEY_WALKTHROUGH_COMPLETED] ?: false
-
-
             BruteforceSettings(
-                characterLength = charLength,
-                characterSetType = charSetType,
-                dictionaryUri = dictUri,
-                attemptPaceMillis = attemptPace,
-                resumeFromLast = resumeLast,
-                singleAttemptMode = singleAttemptMode,
-                lastAttempt = lastAttempt,
-                successKeywords = successKeywords,
-                captchaKeywords = captchaKeywords,
-                controllerPosition = android.graphics.Point(controllerX, controllerY),
-                walkthroughCompleted = walkthroughCompleted
+                characterLength = preferences[PreferencesKeys.CHARACTER_LENGTH] ?: 4,
+                characterSetType = CharacterSetType.valueOf(preferences[PreferencesKeys.CHARACTER_SET_TYPE] ?: CharacterSetType.ALPHANUMERIC_SPECIAL.name),
+                dictionaryUri = preferences[PreferencesKeys.DICTIONARY_URI],
+                attemptPaceMillis = preferences[PreferencesKeys.ATTEMPT_PACE_MILLIS] ?: 100,
+                resumeFromLast = preferences[PreferencesKeys.RESUME_FROM_LAST] ?: true,
+                singleAttemptMode = preferences[PreferencesKeys.SINGLE_ATTEMPT_MODE] ?: false,
+                lastAttempt = preferences[PreferencesKeys.LAST_ATTEMPT],
+                successKeywords = preferences[PreferencesKeys.SUCCESS_KEYWORDS]?.toList() ?: listOf("success", "welcome", "logged in"),
+                captchaKeywords = preferences[PreferencesKeys.CAPTCHA_KEYWORDS]?.toList() ?: listOf("captcha", "verify you", "robot"),
+                controllerPosition = Point(preferences[PreferencesKeys.CONTROLLER_POSITION_X] ?: 100, preferences[PreferencesKeys.CONTROLLER_POSITION_Y] ?: 300),
+                walkthroughCompleted = preferences[PreferencesKeys.WALKTHROUGH_COMPLETED] ?: false,
+                mask = preferences[PreferencesKeys.MASK],
+                hybridModeEnabled = preferences[PreferencesKeys.HYBRID_MODE_ENABLED] ?: false,
+                hybridSuffixes = preferences[PreferencesKeys.HYBRID_SUFFIXES]?.toList() ?: listOf("123", "!", "2024")
             )
         }
-
-    suspend fun updateWalkthroughCompleted(completed: Boolean) {
-        updatePreference(KEY_WALKTHROUGH_COMPLETED, completed)
-    }
-
-    suspend fun updateSuccessKeywords(keywords: List<String>) {
-        updatePreference(KEY_SUCCESS_KEYWORDS, keywords.toSet())
-    }
-
-    suspend fun updateCaptchaKeywords(keywords: List<String>) {
-        updatePreference(KEY_CAPTCHA_KEYWORDS, keywords.toSet())
-    }
-
-    suspend fun updateSingleAttemptMode(enabled: Boolean) {
-        updatePreference(KEY_SINGLE_ATTEMPT_MODE, enabled)
-    }
 
     suspend fun updateCharacterLength(length: Int) {
-        updatePreference(KEY_CHAR_LENGTH, length)
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.CHARACTER_LENGTH] = length
+        }
     }
 
     suspend fun updateCharacterSetType(type: CharacterSetType) {
-        updatePreference(KEY_CHAR_SET_TYPE, type.name)
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.CHARACTER_SET_TYPE] = type.name
+        }
     }
 
     suspend fun updateDictionaryUri(uri: Uri?) {
-        // Persist URI string. Need to handle permission persistence separately (ContentResolver).
-        updatePreference(KEY_DICT_URI, uri?.toString())
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DICTIONARY_URI] = uri.toString()
+        }
     }
 
-    suspend fun updateAttemptPace(paceMillis: Long) {
-        updatePreference(KEY_ATTEMPT_PACE, paceMillis)
+    suspend fun updateAttemptPace(pace: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ATTEMPT_PACE_MILLIS] = pace
+        }
     }
 
     suspend fun updateResumeFromLast(resume: Boolean) {
-        updatePreference(KEY_RESUME_LAST, resume)
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.RESUME_FROM_LAST] = resume
+        }
+    }
+
+    suspend fun updateSingleAttemptMode(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SINGLE_ATTEMPT_MODE] = enabled
+        }
     }
 
     suspend fun updateLastAttempt(attempt: String?) {
-        if (attempt == null) {
-            // Remove the key if the attempt is null (e.g., reset)
-            dataStore.edit { settings ->
-                settings.remove(KEY_LAST_ATTEMPT)
-                Log.d(TAG, "Cleared last attempt")
-            }
-        } else {
-            updatePreference(KEY_LAST_ATTEMPT, attempt)
-            Log.d(TAG, "Updated last attempt to: $attempt")
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.LAST_ATTEMPT] = attempt ?: ""
         }
     }
 
-    // Generic helper function to update a preference value
-    private suspend fun <T> updatePreference(key: Preferences.Key<T>, value: T?) {
-        dataStore.edit { settings ->
-            if (value == null) {
-                settings.remove(key)
-            } else {
-                settings[key] = value
-            }
+    suspend fun updateSuccessKeywords(keywords: List<String>) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SUCCESS_KEYWORDS] = keywords.toSet()
         }
     }
 
-    suspend fun updateControllerPosition(position: android.graphics.Point) {
-        updatePreference(KEY_CONTROLLER_POS_X, position.x)
-        updatePreference(KEY_CONTROLLER_POS_Y, position.y)
+    suspend fun updateCaptchaKeywords(keywords: List<String>) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.CAPTCHA_KEYWORDS] = keywords.toSet()
+        }
     }
 
-    // Function to get the current settings snapshot (not flow)
-    suspend fun getSettingsSnapshot(): BruteforceSettings {
-        return settingsFlow.first()
+    suspend fun updateControllerPosition(position: Point) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.CONTROLLER_POSITION_X] = position.x
+            preferences[PreferencesKeys.CONTROLLER_POSITION_Y] = position.y
+        }
+    }
+
+    suspend fun updateWalkthroughCompleted(completed: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.WALKTHROUGH_COMPLETED] = completed
+        }
+    }
+
+    suspend fun updateMask(mask: String?) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.MASK] = mask ?: ""
+        }
+    }
+
+    suspend fun updateHybridModeEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.HYBRID_MODE_ENABLED] = enabled
+        }
+    }
+
+    suspend fun updateHybridSuffixes(suffixes: List<String>) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.HYBRID_SUFFIXES] = suffixes.toSet()
+        }
+    }
+
+    val automationConfigFlow: Flow<String?> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.AUTOMATION_CONFIG]
+        }
+
+    suspend fun saveAutomationConfig(config: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AUTOMATION_CONFIG] = config
+        }
     }
 }

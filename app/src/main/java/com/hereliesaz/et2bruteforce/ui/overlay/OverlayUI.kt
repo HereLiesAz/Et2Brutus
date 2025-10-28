@@ -53,7 +53,7 @@ fun RootOverlay(
     viewKey: Any,
     uiState: BruteforceState,
     highlightedInfo: com.hereliesaz.et2bruteforce.model.HighlightInfo?,
-    onDrag: (deltaX: Float, deltaY: Float) -> Unit,
+    onDrag: (Point) -> Unit,
     onDragEnd: (Point) -> Unit,
     onStart: () -> Unit,
     onPause: () -> Unit,
@@ -67,7 +67,10 @@ fun RootOverlay(
     onToggleResume: (Boolean) -> Unit,
     onToggleSingleAttemptMode: (Boolean) -> Unit,
     onUpdateSuccessKeywords: (List<String>) -> Unit,
-    onUpdateCaptchaKeywords: (List<String>) -> Unit
+    onUpdateCaptchaKeywords: (List<String>) -> Unit,
+    onUpdateMask: (String) -> Unit,
+    onUpdateHybridModeEnabled: (Boolean) -> Unit,
+    onUpdateHybridSuffixes: (List<String>) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         if (highlightedInfo != null) {
@@ -78,14 +81,13 @@ fun RootOverlay(
                 ConfigButtonUi(
                     nodeType = viewKey,
                     uiState = uiState,
-                    onDrag = onDrag,
+                    onDrag = { point -> onDrag(point) },
                     onDragEnd = onDragEnd
                 )
             }
             MAIN_CONTROLLER_KEY -> {
                 MainControllerUi(
                     uiState = uiState,
-                    onDrag = onDrag,
                     onStart = onStart,
                     onPause = onPause,
                     onStop = onStop,
@@ -98,7 +100,10 @@ fun RootOverlay(
                     onToggleResume = onToggleResume,
                     onToggleSingleAttemptMode = onToggleSingleAttemptMode,
                     onUpdateSuccessKeywords = onUpdateSuccessKeywords,
-                    onUpdateCaptchaKeywords = onUpdateCaptchaKeywords
+                    onUpdateCaptchaKeywords = onUpdateCaptchaKeywords,
+                    onUpdateMask = onUpdateMask,
+                    onUpdateHybridModeEnabled = onUpdateHybridModeEnabled,
+                    onUpdateHybridSuffixes = onUpdateHybridSuffixes
                 )
             }
         }
@@ -126,7 +131,6 @@ fun HighlightBox(bounds: Rect, nodeType: NodeType) {
 @Composable
 fun MainControllerUi(
     uiState: BruteforceState,
-    onDrag: (deltaX: Float, deltaY: Float) -> Unit,
     onStart: () -> Unit,
     onPause: () -> Unit,
     onStop: () -> Unit,
@@ -139,7 +143,10 @@ fun MainControllerUi(
     onToggleResume: (Boolean) -> Unit,
     onToggleSingleAttemptMode: (Boolean) -> Unit,
     onUpdateSuccessKeywords: (List<String>) -> Unit,
-    onUpdateCaptchaKeywords: (List<String>) -> Unit
+    onUpdateCaptchaKeywords: (List<String>) -> Unit,
+    onUpdateMask: (String) -> Unit,
+    onUpdateHybridModeEnabled: (Boolean) -> Unit,
+    onUpdateHybridSuffixes: (List<String>) -> Unit
 ) {
     var showSettingsDialog by rememberSaveable { mutableStateOf(false) }
     val fabSize = 56.dp
@@ -176,6 +183,9 @@ fun MainControllerUi(
                 onToggleSingleAttemptMode = onToggleSingleAttemptMode,
                 onUpdateSuccessKeywords = onUpdateSuccessKeywords,
                 onUpdateCaptchaKeywords = onUpdateCaptchaKeywords,
+                onUpdateMask = onUpdateMask,
+                onUpdateHybridModeEnabled = onUpdateHybridModeEnabled,
+                onUpdateHybridSuffixes = onUpdateHybridSuffixes,
                 onDismiss = { showSettingsDialog = false }
             )
         }
@@ -186,7 +196,7 @@ fun MainControllerUi(
 fun ConfigButtonUi(
     nodeType: NodeType,
     uiState: BruteforceState,
-    onDrag: (deltaX: Float, deltaY: Float) -> Unit,
+    onDrag: (Point) -> Unit,
     onDragEnd: (Point) -> Unit
 ) {
     val buttonConfig = uiState.buttonConfigs[nodeType]
@@ -204,9 +214,16 @@ fun ConfigButtonUi(
                 }
                 .pointerInput(Unit) {
                     detectDragGestures(
-                        onDrag = { change, dragAmount ->
+                        onDrag = { change, _ ->
                             change.consume()
-                            onDrag(dragAmount.x, dragAmount.y)
+                            fabCoordinates?.let {
+                                val rootPos = it.positionInRoot()
+                                val center = Point(
+                                    (rootPos.x + it.size.width / 2f).roundToInt(),
+                                    (rootPos.y + it.size.height / 2f).roundToInt()
+                                )
+                                onDrag(center)
+                            }
                         },
                         onDragEnd = {
                             fabCoordinates?.let {
@@ -390,6 +407,9 @@ private fun SettingsDialog(
     onToggleSingleAttemptMode: (Boolean) -> Unit,
     onUpdateSuccessKeywords: (List<String>) -> Unit,
     onUpdateCaptchaKeywords: (List<String>) -> Unit,
+    onUpdateMask: (String) -> Unit,
+    onUpdateHybridModeEnabled: (Boolean) -> Unit,
+    onUpdateHybridSuffixes: (List<String>) -> Unit,
     onDismiss: () -> Unit
 ) {
     val settings = uiState.settings
@@ -477,6 +497,40 @@ private fun SettingsDialog(
                         onUpdateCaptchaKeywords(it.split(',').map { kw -> kw.trim() }.filter { kw -> kw.isNotEmpty() })
                     },
                     label = { Text("CAPTCHA Keywords (comma-separated)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                var maskText by remember(uiState.settings.mask) { mutableStateOf(uiState.settings.mask ?: "") }
+                OutlinedTextField(
+                    value = maskText,
+                    onValueChange = {
+                        maskText = it
+                        onUpdateMask(it)
+                    },
+                    label = { Text("Mask (e.g., pass****)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(
+                        checked = settings.hybridModeEnabled,
+                        onCheckedChange = onUpdateHybridModeEnabled
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Hybrid Mode", style = MaterialTheme.typography.bodyMedium)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+
+                var hybridSuffixesText by remember(uiState.settings.hybridSuffixes) { mutableStateOf(uiState.settings.hybridSuffixes.joinToString(",")) }
+                OutlinedTextField(
+                    value = hybridSuffixesText,
+                    onValueChange = {
+                        hybridSuffixesText = it
+                        onUpdateHybridSuffixes(it.split(',').map { s -> s.trim() }.filter { s -> s.isNotEmpty() })
+                    },
+                    label = { Text("Hybrid Suffixes (comma-separated)") },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
