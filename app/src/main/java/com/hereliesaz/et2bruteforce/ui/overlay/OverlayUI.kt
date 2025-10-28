@@ -53,7 +53,7 @@ fun RootOverlay(
     viewKey: Any,
     uiState: BruteforceState,
     highlightedInfo: com.hereliesaz.et2bruteforce.model.HighlightInfo?,
-    onDrag: (deltaX: Float, deltaY: Float) -> Unit,
+    onDrag: (Point) -> Unit,
     onDragEnd: (Point) -> Unit,
     onStart: () -> Unit,
     onPause: () -> Unit,
@@ -78,14 +78,13 @@ fun RootOverlay(
                 ConfigButtonUi(
                     nodeType = viewKey,
                     uiState = uiState,
-                    onDrag = onDrag,
+                    onDrag = { point -> onDrag(point) },
                     onDragEnd = onDragEnd
                 )
             }
             MAIN_CONTROLLER_KEY -> {
                 MainControllerUi(
                     uiState = uiState,
-                    onDrag = onDrag,
                     onStart = onStart,
                     onPause = onPause,
                     onStop = onStop,
@@ -126,7 +125,6 @@ fun HighlightBox(bounds: Rect, nodeType: NodeType) {
 @Composable
 fun MainControllerUi(
     uiState: BruteforceState,
-    onDrag: (deltaX: Float, deltaY: Float) -> Unit,
     onStart: () -> Unit,
     onPause: () -> Unit,
     onStop: () -> Unit,
@@ -186,7 +184,7 @@ fun MainControllerUi(
 fun ConfigButtonUi(
     nodeType: NodeType,
     uiState: BruteforceState,
-    onDrag: (deltaX: Float, deltaY: Float) -> Unit,
+    onDrag: (Point) -> Unit,
     onDragEnd: (Point) -> Unit
 ) {
     val buttonConfig = uiState.buttonConfigs[nodeType]
@@ -204,9 +202,16 @@ fun ConfigButtonUi(
                 }
                 .pointerInput(Unit) {
                     detectDragGestures(
-                        onDrag = { change, dragAmount ->
+                        onDrag = { change, _ ->
                             change.consume()
-                            onDrag(dragAmount.x, dragAmount.y)
+                            fabCoordinates?.let {
+                                val rootPos = it.positionInRoot()
+                                val center = Point(
+                                    (rootPos.x + it.size.width / 2f).roundToInt(),
+                                    (rootPos.y + it.size.height / 2f).roundToInt()
+                                )
+                                onDrag(center)
+                            }
                         },
                         onDragEnd = {
                             fabCoordinates?.let {

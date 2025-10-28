@@ -47,6 +47,7 @@ class BruteforceViewModel @Inject constructor(
     val uiState: StateFlow<BruteforceState> = _uiState.asStateFlow()
 
     private var bruteforceJob: Job? = null
+    private var highlightJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -190,6 +191,7 @@ class BruteforceViewModel @Inject constructor(
                     }
                     currentState.copy(buttonConfigs = newConfigs)
                 }
+                highlightNodeAt(newPosition, viewKey)
             }
             is String -> { // Assuming MAIN_CONTROLLER_KEY is a String
                 viewModelScope.launch {
@@ -208,9 +210,11 @@ class BruteforceViewModel @Inject constructor(
     }
 
     fun highlightNodeAt(point: Point, nodeType: NodeType) {
-        val requestId = generateRequestId()
-        Log.d(TAG, "Requesting node highlight for $nodeType at $point [${requestId}]")
-        viewModelScope.launch {
+        highlightJob?.cancel()
+        highlightJob = viewModelScope.launch {
+            delay(50) // Debounce delay
+            val requestId = generateRequestId()
+            Log.d(TAG, "Requesting node highlight for $nodeType at $point [${requestId}]")
             commsManager.requestNodeHighlight(HighlightNodeRequest(point, nodeType, requestId))
         }
     }
