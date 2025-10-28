@@ -134,6 +134,7 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
 
             setContent {
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                val profiles by viewModel.profiles.collectAsStateWithLifecycle()
 
                 RootOverlay(
                     viewKey = viewKey,
@@ -172,7 +173,15 @@ class FloatingControlService : LifecycleService(), ViewModelStoreOwner, SavedSta
                     onToggleSingleAttemptMode = viewModel::toggleSingleAttemptMode,
                     onUpdateSuccessKeywords = viewModel::updateSuccessKeywords,
                     onUpdateCaptchaKeywords = viewModel::updateCaptchaKeywords,
-                    onToggleActionButtons = viewModel::toggleActionButtons
+                    onToggleActionButtons = viewModel::toggleActionButtons,
+                    profiles = profiles,
+                    onLoadProfile = viewModel::loadProfile,
+                    onSaveProfile = viewModel::saveProfile,
+                    onDeleteProfile = viewModel::deleteProfile,
+                    onRenameProfile = viewModel::renameProfile,
+                    onUpdateMask = viewModel::updateMask,
+                    onUpdateHybridModeEnabled = viewModel::updateHybridModeEnabled,
+                    onUpdateHybridSuffixes = viewModel::updateHybridSuffixes
                 )
             }
         }

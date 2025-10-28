@@ -17,8 +17,11 @@ import com.hereliesaz.et2bruteforce.model.CharacterSetType
 import com.hereliesaz.et2bruteforce.model.HighlightInfo
 import com.hereliesaz.et2bruteforce.model.NodeType
 import kotlinx.coroutines.delay
+import com.hereliesaz.et2bruteforce.model.Profile
 import com.hereliesaz.et2bruteforce.services.NodeInfo
 import com.hereliesaz.et2bruteforce.services.ScreenAnalysisResult
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor5
 import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor6
 import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor7
@@ -44,7 +47,11 @@ class BruteforceViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(BruteforceState())
     val uiState: StateFlow<BruteforceState> = _uiState.asStateFlow()
 
+    private val _profiles = MutableStateFlow<List<Profile>>(emptyList())
+    val profiles: StateFlow<List<Profile>> = _profiles.asStateFlow()
+
     private var bruteforceJob: Job? = null
+    private var highlightJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -52,7 +59,45 @@ class BruteforceViewModel @Inject constructor(
                 _uiState.update { it.copy(settings = settings) }
             }
         }
+        viewModelScope.launch {
+            settingsRepository.profilesFlow.collect { profiles ->
+                _profiles.value = profiles
+            }
+        }
         observeAccessibilityEvents()
+    }
+
+    fun saveProfile(name: String) {
+        viewModelScope.launch {
+            val newProfile = Profile(name, _uiState.value.buttonConfigs)
+            val updatedProfiles = _profiles.value + newProfile
+            settingsRepository.saveProfiles(updatedProfiles)
+        }
+    }
+
+    fun loadProfile(profile: Profile) {
+        _uiState.update { it.copy(buttonConfigs = profile.buttonConfigs) }
+        checkIfReady()
+    }
+
+    fun deleteProfile(profile: Profile) {
+        viewModelScope.launch {
+            val updatedProfiles = _profiles.value - profile
+            settingsRepository.saveProfiles(updatedProfiles)
+        }
+    }
+
+    fun renameProfile(profile: Profile, newName: String) {
+        viewModelScope.launch {
+            val updatedProfiles = _profiles.value.map {
+                if (it == profile) {
+                    it.copy(name = newName)
+                } else {
+                    it
+                }
+            }
+            settingsRepository.saveProfiles(updatedProfiles)
+        }
     }
 
     private fun observeAccessibilityEvents() {
@@ -170,6 +215,7 @@ class BruteforceViewModel @Inject constructor(
                     }
                     currentState.copy(buttonConfigs = newConfigs)
                 }
+                highlightNodeAt(newPosition, viewKey)
             }
             is String -> { // Assuming MAIN_CONTROLLER_KEY is a String
                 viewModelScope.launch {
@@ -188,9 +234,11 @@ class BruteforceViewModel @Inject constructor(
     }
 
     fun highlightNodeAt(point: Point, nodeType: NodeType) {
-        val requestId = generateRequestId()
-        Log.d(TAG, "Requesting node highlight for $nodeType at $point [${requestId}]")
-        viewModelScope.launch {
+        highlightJob?.cancel()
+        highlightJob = viewModelScope.launch {
+            delay(50) // Debounce delay
+            val requestId = generateRequestId()
+            Log.d(TAG, "Requesting node highlight for $nodeType at $point [${requestId}]")
             commsManager.requestNodeHighlight(HighlightNodeRequest(point, nodeType, requestId))
         }
     }
