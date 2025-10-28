@@ -14,6 +14,8 @@ The application is written in Kotlin and uses the following technologies:
 
 -   **Jetpack Compose**: For building the user interface.
 -   **Dagger Hilt**: For dependency injection.
+-   **DataStore**: For persisting user settings and profiles.
+-   **Kotlinx Serialization**: For serializing and deserializing data.
 
 ## Development Conventions
 

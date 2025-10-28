@@ -43,8 +43,9 @@ This shortcut works even when the app is not in the foreground.
 The floating controller allows you to automate a brute-force attack on a text field.
 
 1.  **Configure:** Use the controller to identify the input field, submit button, and any popup that may appear.
-2.  **Set Parameters:** Configure the bruteforce parameters, such as character set, length, and attempt pace.
-3.  **Start:** Press the play button to begin the bruteforce process.
-4.  **Stop:** Press the stop button to halt the process.
+2.  **Set Parameters:** Configure the bruteforce parameters, such as character set, length, and attempt pace. You can also configure a mask or hybrid attack.
+3.  **Save Profile:** Save your configuration as a profile to reuse it later.
+4.  **Start:** Press the play button to begin the bruteforce process.
+5.  **Stop:** Press the stop button to halt the process.
 
 To stop the service and remove the floating controller, open the app and click the "Stop Service" button.
