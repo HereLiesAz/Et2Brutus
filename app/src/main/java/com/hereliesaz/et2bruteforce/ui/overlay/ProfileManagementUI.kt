@@ -16,6 +16,7 @@ import com.hereliesaz.et2bruteforce.model.Profile
 @Composable
 fun ProfileManagementDialog(
     profiles: List<Profile>,
+    saveError: String?,
     onLoadProfile: (Profile) -> Unit,
     onSaveProfile: (String) -> Unit,
     onDeleteProfile: (Profile) -> Unit,
@@ -28,12 +29,41 @@ fun ProfileManagementDialog(
         text = {
             Column {
                 var newProfileName by remember { mutableStateOf("") }
+                var showError by remember { mutableStateOf(false) }
                 OutlinedTextField(
                     value = newProfileName,
-                    onValueChange = { newProfileName = it },
-                    label = { Text("New Profile Name") }
+                    onValueChange = {
+                        newProfileName = it
+                        if (showError && it.isNotBlank()) showError = false
+                    },
+                    label = { Text("New Profile Name") },
+                    isError = showError && newProfileName.isBlank()
                 )
-                Button(onClick = { onSaveProfile(newProfileName) }) {
+                if (showError && newProfileName.isBlank()) {
+                    Text(
+                        text = "Profile name cannot be empty.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+                if (saveError != null) {
+                    Text(
+                        text = saveError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+                Button(
+                    onClick = {
+                        if (newProfileName.isBlank()) {
+                            showError = true
+                        } else {
+                            onSaveProfile(newProfileName)
+                            showError = false
+                        }
+                    },
+                    enabled = newProfileName.isNotBlank()
+                ) {
                     Text("Save Current as New Profile")
                 }
                 LazyColumn {
@@ -89,7 +119,7 @@ fun ProfileListItem(
             Text(profile.name)
             Row {
                 IconButton(onClick = { onLoadProfile(profile) }) {
-                    Icon(Icons.Default.Login, contentDescription = "Load")
+                    Icon(Icons.Default.Restore, contentDescription = "Load")
                 }
                 IconButton(onClick = { isEditing = true }) {
                     Icon(Icons.Default.Edit, contentDescription = "Rename")

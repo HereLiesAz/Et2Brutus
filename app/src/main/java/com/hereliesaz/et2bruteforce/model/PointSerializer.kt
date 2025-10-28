@@ -26,8 +26,8 @@ object PointSerializer : KSerializer<Point> {
 
     override fun deserialize(decoder: Decoder): Point {
         return decoder.decodeStructure(descriptor) {
-            var x = -1
-            var y = -1
+            var x: Int? = null
+            var y: Int? = null
             while (true) {
                 when (val index = decodeElementIndex(descriptor)) {
                     0 -> x = decodeIntElement(descriptor, 0)
@@ -36,6 +36,7 @@ object PointSerializer : KSerializer<Point> {
                     else -> error("Unexpected index: $index")
                 }
             }
+            require(x != null && y != null) { "Missing x or y coordinate" }
             Point(x, y)
         }
     }

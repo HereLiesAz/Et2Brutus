@@ -2,9 +2,7 @@ package com.hereliesaz.et2bruteforce.data
 
 import android.content.Context
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.hereliesaz.et2bruteforce.model.Profile
@@ -52,7 +50,6 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
                 walkthroughCompleted = preferences[PreferencesKeys.WALKTHROUGH_COMPLETED] ?: false
             )
         }
-    }
 
     suspend fun updateCharacterLength(length: Int) {
         context.dataStore.edit { preferences ->
@@ -68,7 +65,11 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
 
     suspend fun updateDictionaryUri(uri: Uri?) {
         context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.DICTIONARY_URI] = uri.toString()
+            if (uri == null) {
+                preferences.remove(PreferencesKeys.DICTIONARY_URI)
+            } else {
+                preferences[PreferencesKeys.DICTIONARY_URI] = uri.toString()
+            }
         }
     }
 
@@ -92,7 +93,11 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
 
     suspend fun updateLastAttempt(attempt: String?) {
         context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.LAST_ATTEMPT] = attempt ?: ""
+            if (attempt == null) {
+                preferences.remove(PreferencesKeys.LAST_ATTEMPT)
+            } else {
+                preferences[PreferencesKeys.LAST_ATTEMPT] = attempt
+            }
         }
     }
 

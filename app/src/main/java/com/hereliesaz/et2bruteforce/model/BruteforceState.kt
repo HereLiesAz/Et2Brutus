@@ -54,10 +54,7 @@ data class BruteforceSettings(
     val successKeywords: List<String> = listOf("success", "welcome", "logged in"),
     val captchaKeywords: List<String> = listOf("captcha", "verify you", "robot"),
     val controllerPosition: Point = Point(100, 300), // Default position
-    val walkthroughCompleted: Boolean = false,
-    val mask: String? = null,
-    val hybridModeEnabled: Boolean = false,
-    val hybridSuffixes: List<String> = listOf("123", "!", "2024")
+    val walkthroughCompleted: Boolean = false
 )
 
 data class BruteforceState(

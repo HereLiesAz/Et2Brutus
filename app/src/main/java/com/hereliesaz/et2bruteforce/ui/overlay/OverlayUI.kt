@@ -69,6 +69,7 @@ fun RootOverlay(
     onUpdateSuccessKeywords: (List<String>) -> Unit,
     onUpdateCaptchaKeywords: (List<String>) -> Unit,
     profiles: List<Profile>,
+    saveError: String?,
     onLoadProfile: (Profile) -> Unit,
     onSaveProfile: (String) -> Unit,
     onDeleteProfile: (Profile) -> Unit,
@@ -107,6 +108,7 @@ fun RootOverlay(
                     onUpdateHybridModeEnabled = onUpdateHybridModeEnabled,
                     onUpdateHybridSuffixes = onUpdateHybridSuffixes,
                     profiles = profiles,
+                    saveError = saveError,
                     onLoadProfile = onLoadProfile,
                     onSaveProfile = onSaveProfile,
                     onDeleteProfile = onDeleteProfile,
@@ -152,6 +154,7 @@ fun MainControllerUi(
     onUpdateSuccessKeywords: (List<String>) -> Unit,
     onUpdateCaptchaKeywords: (List<String>) -> Unit,
     profiles: List<Profile>,
+    saveError: String?,
     onLoadProfile: (Profile) -> Unit,
     onSaveProfile: (String) -> Unit,
     onDeleteProfile: (Profile) -> Unit,
@@ -204,6 +207,7 @@ fun MainControllerUi(
         if (showProfileDialog) {
             ProfileManagementDialog(
                 profiles = profiles,
+                saveError = saveError,
                 onLoadProfile = onLoadProfile,
                 onSaveProfile = onSaveProfile,
                 onDeleteProfile = onDeleteProfile,
@@ -435,9 +439,6 @@ private fun SettingsDialog(
     onToggleSingleAttemptMode: (Boolean) -> Unit,
     onUpdateSuccessKeywords: (List<String>) -> Unit,
     onUpdateCaptchaKeywords: (List<String>) -> Unit,
-    onUpdateMask: (String) -> Unit,
-    onUpdateHybridModeEnabled: (Boolean) -> Unit,
-    onUpdateHybridSuffixes: (List<String>) -> Unit,
     onDismiss: () -> Unit
 ) {
     val settings = uiState.settings
@@ -525,40 +526,6 @@ private fun SettingsDialog(
                         onUpdateCaptchaKeywords(it.split(',').map { kw -> kw.trim() }.filter { kw -> kw.isNotEmpty() })
                     },
                     label = { Text("CAPTCHA Keywords (comma-separated)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                var maskText by remember(uiState.settings.mask) { mutableStateOf(uiState.settings.mask ?: "") }
-                OutlinedTextField(
-                    value = maskText,
-                    onValueChange = {
-                        maskText = it
-                        onUpdateMask(it)
-                    },
-                    label = { Text("Mask (e.g., pass****)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Switch(
-                        checked = settings.hybridModeEnabled,
-                        onCheckedChange = onUpdateHybridModeEnabled
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Hybrid Mode", style = MaterialTheme.typography.bodyMedium)
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-
-                var hybridSuffixesText by remember(uiState.settings.hybridSuffixes) { mutableStateOf(uiState.settings.hybridSuffixes.joinToString(",")) }
-                OutlinedTextField(
-                    value = hybridSuffixesText,
-                    onValueChange = {
-                        hybridSuffixesText = it
-                        onUpdateHybridSuffixes(it.split(',').map { s -> s.trim() }.filter { s -> s.isNotEmpty() })
-                    },
-                    label = { Text("Hybrid Suffixes (comma-separated)") },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
