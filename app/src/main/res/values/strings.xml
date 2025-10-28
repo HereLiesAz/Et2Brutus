@@ -78,4 +78,24 @@
     <string name="main_configuration">Configuration</string>
     <string name="main_save_configuration">Save</string>
     <string name="main_load_configuration">Load</string>
+    <string name="title_activity_walkthrough">Walkthrough</string>
+    <string name="walkthrough_welcome_title">Welcome!</string>
+    <string name="walkthrough_welcome_text">This app helps you automate repetitive tasks by simulating screen taps.</string>
+    <string name="walkthrough_permissions_title">Permissions</string>
+    <string name="walkthrough_permissions_text">First, please grant both \'Draw Over Other Apps\' and \'Accessibility Service\' permissions on the main screen.</string>
+    <string name="walkthrough_shortcut_title">The Shortcut</string>
+    <string name="walkthrough_shortcut_text">Press (Ctrl + G) on a physical keyboard to show or hide the floating menu at any time.</string>
+    <string name="walkthrough_menu_title">The Menu</string>
+    <string name="walkthrough_menu_text">Tap the floating dagger icon to open the menu. You can drag the icon anywhere on the screen.</string>
+    <string name="walkthrough_input_title">Identify Input</string>
+    <string name="walkthrough_input_text">Drag the \'Input\' button over the text field where the app should type (e.g., a password field).</string>
+    <string name="walkthrough_submit_title">Identify Submit</string>
+    <string name="walkthrough_submit_text">Drag the \'Submit\' button over the button that submits the form (e.g., a \'Login\' button).</string>
+    <string name="walkthrough_popups_title">Identify Popups</string>
+    <string name="walkthrough_popups_text">If a popup appears after a failed attempt, drag the \'Popup\' button over the button that closes it (e.g., \'OK\').</string>
+    <string name="walkthrough_all_set_title">You\'re All Set!</string>
+    <string name="walkthrough_all_set_text">Once the \'Input\' and \'Submit\' buttons have identified their targets, you can start the process from the menu.</string>
+    <string name="walkthrough_prev">Prev</string>
+    <string name="walkthrough_next">Next</string>
+    <string name="walkthrough_finish">Finish</string>
 </resources>

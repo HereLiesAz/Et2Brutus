@@ -203,4 +203,56 @@ class BruteforceEngine @Inject constructor(
             CharacterSetType.ALPHANUMERIC_SPECIAL -> LETTERS + NUMBERS + SPECIAL_CHARS
         }
     }
+
+    // Flow to generate mask candidates
+    fun generateMaskCandidates(settings: BruteforceSettings): Flow<String> = callbackFlow<String> {
+        val mask = settings.mask ?: run {
+            close(IllegalStateException("Mask is null"))
+            return@callbackFlow
+        }
+        val charset = getCharacterSet(settings.characterSetType)
+        val wildcardCount = mask.count { it == '*' }
+        val indices = IntArray(wildcardCount) { 0 }
+        val maxIndex = charset.length - 1
+
+        while (isActive) {
+            val candidate = buildString {
+                var wildcardIndex = 0
+                for (char in mask) {
+                    if (char == '*') {
+                        append(charset[indices[wildcardIndex]])
+                        wildcardIndex++
+                    } else {
+                        append(char)
+                    }
+                }
+            }
+            trySend(candidate).isSuccess
+
+            var current = wildcardCount - 1
+            while (current >= 0) {
+                indices[current]++
+                if (indices[current] < charset.length) break
+                indices[current] = 0
+                current--
+            }
+
+            if (current < 0) {
+                break
+            }
+        }
+
+        awaitClose { Log.d(TAG, "Mask Flow closed.") }
+    }.flowOn(Dispatchers.Default)
+
+    // Flow to generate hybrid candidates
+    fun generateHybridCandidates(settings: BruteforceSettings): Flow<Pair<String, Float>> = callbackFlow<Pair<String, Float>> {
+        generateDictionaryCandidates(settings)
+            .collect { (word, progress) ->
+                settings.hybridSuffixes.forEach { suffix ->
+                    trySend((word + suffix) to progress).isSuccess
+                }
+            }
+        awaitClose { Log.d(TAG, "Hybrid Flow closed.") }
+    }.flowOn(Dispatchers.IO)
 }

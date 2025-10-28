@@ -179,6 +179,24 @@ class BruteforceViewModel @Inject constructor(
         }
     }
 
+    fun updateMask(mask: String) {
+        viewModelScope.launch {
+            settingsRepository.updateMask(mask)
+        }
+    }
+
+    fun updateHybridModeEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateHybridModeEnabled(enabled)
+        }
+    }
+
+    fun updateHybridSuffixes(suffixes: List<String>) {
+        viewModelScope.launch {
+            settingsRepository.updateHybridSuffixes(suffixes)
+        }
+    }
+
     // --- New Action Request Methods ---
     fun updateButtonPosition(viewKey: Any, newPosition: Point) {
         when (viewKey) {
@@ -257,11 +275,46 @@ class BruteforceViewModel @Inject constructor(
             var attemptCounter = currentUiState.attemptCount // Resume count if paused
 
             try {
+                // --- Mask Phase ---
+                if (!currentSettings.mask.isNullOrEmpty()) {
+                    Log.d(TAG, "Starting mask phase.")
+                    bruteforceEngine.generateMaskCandidates(currentSettings)
+                        .catch { e ->
+                            Log.e(TAG, "Error in mask flow", e)
+                            updateStatus(BruteforceStatus.ERROR)
+                            _uiState.update { it.copy(errorMessage = "Mask Error: ${e.message}") }
+                            bruteforceJob?.cancel()
+                        }
+                        .collect { candidate ->
+                            ensureActive()
+                            if (uiState.value.status != BruteforceStatus.RUNNING) throw CancellationException("Status changed externally.")
+
+                            Log.v(TAG, "Attempting mask candidate: $candidate")
+                            _uiState.update { it.copy(currentAttempt = candidate, attemptCount = attemptCounter + 1) }
+
+                            val attemptResult = performSingleAttempt(inputNode, submitNode, popupNode, candidate, currentSettings)
+
+                            settingsRepository.updateLastAttempt(candidate)
+                            attemptCounter++
+
+                            handleAttemptResult(attemptResult, candidate)
+
+                            if (currentSettings.singleAttemptMode) {
+                                pauseBruteforce()
+                                return@collect
+                            }
+                        }
+                }
                 // --- Dictionary Phase ---
-                if (!currentSettings.dictionaryUri.isNullOrEmpty()) {
+                else if (!currentSettings.dictionaryUri.isNullOrEmpty()) {
                     Log.d(TAG, "Starting dictionary phase.")
                     var dictionaryCompletedSuccessfully = false
-                    bruteforceEngine.generateDictionaryCandidates(currentSettings)
+                    val dictionaryFlow = if (currentSettings.hybridModeEnabled) {
+                        bruteforceEngine.generateHybridCandidates(currentSettings)
+                    } else {
+                        bruteforceEngine.generateDictionaryCandidates(currentSettings)
+                    }
+                    dictionaryFlow
                         .onCompletion { if (it == null) dictionaryCompletedSuccessfully = true } // Mark completion if no error
                         .catch { e ->
                             Log.e(TAG, "Error in dictionary flow", e)
