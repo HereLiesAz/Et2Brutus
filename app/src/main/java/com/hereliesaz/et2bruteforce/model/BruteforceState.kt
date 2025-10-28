@@ -2,8 +2,10 @@ package com.hereliesaz.et2bruteforce.model
 
 import android.graphics.Point
 import com.hereliesaz.et2bruteforce.services.NodeInfo
+import kotlinx.serialization.Serializable
 
 
+@Serializable
 enum class BruteforceStatus {
     IDLE,
     // CONFIGURING statuses are removed, as configuration is now managed per-button
@@ -23,13 +25,16 @@ enum class BruteforceStatus {
  * @param position The current x,y coordinates of the button on the screen.
  * @param identifiedNodeInfo The details of the UI node identified at this button's location. Null if not yet identified or failed.
  */
+@Serializable
 data class ButtonConfig(
     val type: NodeType,
+    @Serializable(with = PointSerializer::class)
     val position: Point,
     val identifiedNodeInfo: NodeInfo? = null
 )
 
 
+@Serializable
 enum class CharacterSetType {
     LETTERS,        // a-z, A-Z
     NUMBERS,        // 0-9

@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,10 +21,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.hereliesaz.et2bruteforce.ui.theme.PermissionGranted
+import com.hereliesaz.et2bruteforce.ui.theme.PermissionDenied
 import com.hereliesaz.et2bruteforce.services.BruteforceAccessibilityService
 import com.hereliesaz.et2bruteforce.comms.AccessibilityCommsManager
 import com.hereliesaz.et2bruteforce.services.FloatingControlService
 import com.hereliesaz.et2bruteforce.ui.theme.Et2BruteForceTheme
+import com.hereliesaz.et2bruteforce.viewmodel.BruteforceViewModel
 import android.view.KeyEvent
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -40,16 +44,18 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var settingsRepository: SettingsRepository
 
+    private val viewModel: BruteforceViewModel by viewModels()
+
     // ActivityResultLauncher for SYSTEM_ALERT_WINDOW permission
     private val overlayPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (!Settings.canDrawOverlays(this)) {
-                Toast.makeText(this, "Overlay permission is required for the floating controls.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.main_overlay_permission_toast), Toast.LENGTH_LONG).show()
             } else {
                 // Permission granted, potentially start service automatically or update UI
-                Toast.makeText(this, "Overlay permission granted.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.main_overlay_permission_granted), Toast.LENGTH_SHORT).show()
             }
         }
         // Recompose to update button states
@@ -72,10 +78,10 @@ class MainActivity : ComponentActivity() {
                     lifecycleScope.launch {
                         commsManager.reportDictionaryUri(uri)
                     }
-                    Toast.makeText(this, "Dictionary selected.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.main_dictionary_selected), Toast.LENGTH_SHORT).show()
                 } catch (e: SecurityException) {
                     Log.e("MainActivity", "Failed to take persistable URI permission", e)
-                    Toast.makeText(this, "Error selecting dictionary.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.main_dictionary_error), Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -97,6 +103,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             Et2BruteForceTheme {
                 MainScreen(
+                    viewModel = viewModel,
                     onRequestOverlayPermission = ::requestOverlayPermission,
                     onCheckAccessibilityPermission = ::isAccessibilityServiceEnabled,
                     onRequestAccessibilityPermission = ::requestAccessibilityPermission,
@@ -115,9 +122,9 @@ class MainActivity : ComponentActivity() {
             )
             overlayPermissionLauncher.launch(intent)
         } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            Toast.makeText(this, "Overlay permission is implicitly granted on this Android version.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.main_overlay_permission_implicit), Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(this, "Overlay permission already granted.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.main_overlay_permission_already_granted), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -132,7 +139,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestAccessibilityPermission() {
-        Toast.makeText(this, "Please enable the '${getString(R.string.accessibility_service_label)}' in Accessibility settings.", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, getString(R.string.main_accessibility_permission_toast, getString(R.string.accessibility_service_label)), Toast.LENGTH_LONG).show()
         val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
         startActivity(intent)
         // User needs to manually enable it. App can't do it programmatically.
@@ -140,25 +147,25 @@ class MainActivity : ComponentActivity() {
 
     private fun startFloatingService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-            Toast.makeText(this, "Overlay permission required first.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.main_overlay_permission_required), Toast.LENGTH_SHORT).show()
             requestOverlayPermission()
             return
         }
         if (!isAccessibilityServiceEnabled()) {
-            Toast.makeText(this, "Accessibility Service required first.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.main_accessibility_permission_required), Toast.LENGTH_SHORT).show()
             requestAccessibilityPermission()
             return
         }
 
         Log.i("MainActivity", "Starting FloatingControlService")
         startService(Intent(this, FloatingControlService::class.java))
-        Toast.makeText(this, "Floating service started.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.main_service_started), Toast.LENGTH_SHORT).show()
     }
 
     private fun stopFloatingService() {
         Log.i("MainActivity", "Stopping FloatingControlService")
         stopService(Intent(this, FloatingControlService::class.java))
-        Toast.makeText(this, "Floating service stopped.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.main_service_stopped), Toast.LENGTH_SHORT).show()
     }
 
 }
@@ -166,6 +173,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainScreen(
+    viewModel: BruteforceViewModel,
     onRequestOverlayPermission: () -> Unit,
     onCheckAccessibilityPermission: () -> Boolean,
     onRequestAccessibilityPermission: () -> Unit,
@@ -173,6 +181,7 @@ fun MainScreen(
     onStopService: () -> Unit
 ) {
     val context = LocalContext.current
+    val profiles by viewModel.profiles.collectAsState()
     // Use LaunchedEffect or rememberUpdatedState if checks need to re-run automatically
     var hasOverlayPerm by remember { mutableStateOf(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) Settings.canDrawOverlays(context) else true) }
     var hasAccessPerm by remember { mutableStateOf(onCheckAccessibilityPermission()) }
@@ -190,81 +199,87 @@ fun MainScreen(
                 .fillMaxSize()
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Screen Bruteforcer Setup", style = MaterialTheme.typography.headlineMedium)
-            Spacer(modifier = Modifier.height(16.dp))
+            Text(stringResource(R.string.main_setup_title), style = MaterialTheme.typography.headlineMedium)
+
+            Card {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(stringResource(R.string.main_permissions_required), style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    PermissionRow(
+                        permissionName = stringResource(R.string.main_draw_over_apps),
+                        isGranted = hasOverlayPerm,
+                        onRequestPermission = onRequestOverlayPermission
+                    )
+
+                    PermissionRow(
+                        permissionName = stringResource(R.string.main_accessibility_service),
+                        isGranted = hasAccessPerm,
+                        onRequestPermission = onRequestAccessibilityPermission
+                    )
+
+                    Button(onClick = refreshPermissions) {
+                        Text(stringResource(R.string.main_recheck_permissions))
+                    }
+                }
+            }
+
+            Card {
+                Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(stringResource(R.string.main_service_control), style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Button(onClick = onStartService, enabled = hasOverlayPerm && hasAccessPerm) {
+                            Text(stringResource(R.string.main_start_service))
+                        }
+                        Button(onClick = onStopService) {
+                            Text(stringResource(R.string.main_stop_service))
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        stringResource(R.string.main_service_info),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                }
+            }
+
             Button(onClick = {
-                context.startActivity(Intent(context, WalkthroughActivity::class.java))
+                context.startActivity(Intent(context, InstructionActivity::class.java))
             }) {
-                Text("View Full Instructions")
+                Text(stringResource(R.string.main_view_instructions))
             }
-            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
 
-            Text("Permissions Required:")
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Overlay Permission
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Draw Over Other Apps: ")
-                Text(if (hasOverlayPerm) "GRANTED" else "Needed", color = if (hasOverlayPerm) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(onClick = onRequestOverlayPermission, enabled = !hasOverlayPerm) {
-                    Text("Request")
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Accessibility Permission
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Accessibility Service: ")
-                Text(if (hasAccessPerm) "ENABLED" else "Needed", color = if (hasAccessPerm) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(onClick = onRequestAccessibilityPermission, enabled = !hasAccessPerm) {
-                    Text("Go To Settings")
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = ::refreshPermissions) {
-                Text("Re-Check Permissions")
-            }
-
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Text("Service Control:")
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                Button(onClick = onStartService, enabled = hasOverlayPerm && hasAccessPerm) {
-                    Text("Start Service")
-                }
-                Button(onClick = onStopService) {
-                    Text("Stop Service")
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                "Enable permissions, then start the service. A floating button will appear.",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Text(
-                text = stringResource(id = R.string.instructions_label),
-                style = MaterialTheme.typography.titleMedium
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(id = R.string.instructions_text),
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
+@Composable
+fun PermissionRow(
+    permissionName: String,
+    isGranted: Boolean,
+    onRequestPermission: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(permissionName)
+        Text(
+            text = if (isGranted) stringResource(R.string.main_granted) else stringResource(R.string.main_needed),
+            color = if (isGranted) PermissionGranted else PermissionDenied
+        )
+        Button(onClick = onRequestPermission, enabled = !isGranted) {
+            Text(if (isGranted) stringResource(R.string.main_granted) else stringResource(R.string.main_request))
         }
     }
 }

@@ -9,9 +9,9 @@ This document provides a detailed breakdown of the files in the Et2Brutus projec
 **Purpose:** This file is a guide for AI agents working on the project. It provides an overview of the project's architecture, development conventions, and how to run tests.
 
 **Key Information:**
--   **Architecture:** Describes the multi-module Gradle project structure, which is currently outdated as the project is a single-module app.
--   **Development Conventions:** Outlines procedures for adding new features and updating the `CHANGELOG.md`.
--   **Testing:** Provides the command for running unit tests: `./gradlew :app_android:test`, which is also outdated and should be `./gradlew :app:test`.
+-   **Architecture:** Describes the project as a single-module Android application using Gradle, Kotlin, Jetpack Compose, Dagger Hilt, DataStore, and Kotlinx Serialization.
+-   **Development Conventions:** Outlines procedures for building the project and running tests.
+-   **Testing:** Provides the command for running unit tests: `./gradlew :app:test`.
 
 ---
 
@@ -22,7 +22,7 @@ This document provides a detailed breakdown of the files in the Et2Brutus projec
 **Key Information:**
 -   **Functionality:** Explains that the app uses an Accessibility Service to automate on-screen tasks via a floating controller.
 -   **Permissions:** Details the two required permissions: "Draw Over Other Apps" and "Accessibility Service".
--   **Usage:** Describes how to start the floating controller, both manually from the app and via a keyboard shortcut (`Ctrl + G`), and how to use it to record and replay taps.
+-   **Usage:** Describes how to start the floating controller, both manually from the app and via a keyboard shortcut (`Ctrl + G`), and how to use it to configure and run a brute-force attack. It also mentions the new profile management feature and the enhanced core engine capabilities.
 
 ---
 
@@ -101,6 +101,8 @@ This document provides a detailed breakdown of the files in the Et2Brutus projec
 **Key Functions:**
 -   `generateDictionaryCandidates()`: Returns a `Flow` that emits words from a user-selected dictionary file.
 -   `generatePermutationCandidates()`: Returns a `Flow` that emits all possible permutations of a given length and character set.
+-   `generateMaskCandidates()`: Returns a `Flow` that emits candidates based on a user-defined mask.
+-   `generateHybridCandidates()`: Returns a `Flow` that combines words from a dictionary file with prefixes or suffixes.
 -   **Connects:** `BruteforceViewModel`.
 
 ---
@@ -133,6 +135,7 @@ This document provides a detailed breakdown of the files in the Et2Brutus projec
 -   `MainControllerUi()`: The main floating action button menu that expands to show controls for starting, stopping, and configuring the bruteforce process.
 -   `ConfigButtonUi()`: The draggable buttons that are used to identify the input field, submit button, and popup button on the target application.
 -   `SettingsDialog()`: A dialog for configuring advanced settings like character length, character set, and attempt pace.
+-   `ProfileManagementDialog()`: A dialog for managing saved automation configurations.
 
 ---
 
@@ -141,9 +144,10 @@ This document provides a detailed breakdown of the files in the Et2Brutus projec
 **Purpose:** This is the ViewModel that drives the bruteforce functionality. It acts as the central point of control, managing the application's state, handling user interactions from the UI, and coordinating the work of the `BruteforceEngine` and the `BruteforceAccessibilityService`.
 
 **Key Responsibilities:**
--   **State Management:** Holds the `BruteforceState` in a `StateFlow`, which the UI observes for updates.
+-   **State Management:** Holds the `BruteforceState` in a `StateFlow`, which the UI observes for updates. It also manages a `StateFlow` of saved profiles.
 -   **Orchestration:** The `startBruteforce()` function launches the main coroutine that generates candidates from the `BruteforceEngine` and sends requests to the `BruteforceAccessibilityService` via the `AccessibilityCommsManager`.
 -   **Event Handling:** Listens for events from the `AccessibilityCommsManager` to know when actions are completed or nodes are identified.
+-   **Profile Management:** Provides functions to save, load, delete, and rename automation profiles.
 -   **Connects:** `BruteforceState`, `SettingsRepository`, `BruteforceEngine`, `AccessibilityCommsManager`.
 
 ---
@@ -179,6 +183,7 @@ This document provides a detailed breakdown of the files in the Et2Brutus projec
 **Key Features:**
 -   **DataStore:** Uses `preferencesDataStore` to store key-value pairs.
 -   **Settings Flow:** Exposes a `Flow<BruteforceSettings>` that emits the latest settings whenever they change. The `BruteforceViewModel` collects this flow to stay up-to-date.
+-   **Profiles Flow:** Exposes a `Flow<List<Profile>>` that emits the list of saved profiles.
 -   **Update Methods:** Provides `suspend` functions for updating each setting (e.g., `updateCharacterLength()`, `updateDictionaryUri()`).
 -   **Connects:** `BruteforceViewModel`, `MainActivity`, `WalkthroughActivity`.
 
@@ -212,3 +217,5 @@ This document provides a detailed breakdown of the files in the Et2Brutus projec
 -   **HighlightInfo.kt:** A simple data class to hold information about a UI element that is being highlighted on the screen.
 -   **NodeType.kt:** Defines the `NodeType` enum, which is used to differentiate between the different types of UI elements that the user can identify (INPUT, SUBMIT, POPUP).
 -   **NodeTypeExtensions.kt:** Contains an extension function `getColor()` for the `NodeType` enum, which returns a color for each node type, used for the highlight and the config buttons.
+-   **Profile.kt:** Defines the `Profile` data class, which represents a saved automation configuration.
+-   **PointSerializer.kt:** Contains a custom serializer for the `android.graphics.Point` class, which is not directly serializable.

@@ -40,13 +40,12 @@ This shortcut works even when the app is not in the foreground.
 
 ## Using the Floating Controller
 
-The floating controller allows you to record and replay a sequence of taps.
+The floating controller allows you to automate a brute-force attack on a text field.
 
-*(Note: The exact functionality of the floating controller is inferred from the code. This section may need to be updated after testing.)*
-
-1.  **Record:** Press the record button on the floating controller to start recording your taps.
-2.  **Perform Taps:** Tap on the screen in the sequence you want to automate.
-3.  **Stop Recording:** Press the stop button on the controller to finish recording.
-4.  **Playback:** Press the play button to have the app automatically replay the sequence of taps you recorded.
+1.  **Configure:** Use the controller to identify the input field, submit button, and any popup that may appear.
+2.  **Set Parameters:** Configure the bruteforce parameters, such as character set, length, and attempt pace. You can also configure a mask or hybrid attack.
+3.  **Save Profile:** Save your configuration as a profile to reuse it later.
+4.  **Start:** Press the play button to begin the bruteforce process.
+5.  **Stop:** Press the stop button to halt the process.
 
 To stop the service and remove the floating controller, open the app and click the "Stop Service" button.

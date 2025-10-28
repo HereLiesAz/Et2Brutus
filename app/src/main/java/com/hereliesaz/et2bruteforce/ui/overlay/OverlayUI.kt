@@ -53,7 +53,7 @@ fun RootOverlay(
     viewKey: Any,
     uiState: BruteforceState,
     highlightedInfo: com.hereliesaz.et2bruteforce.model.HighlightInfo?,
-    onDrag: (deltaX: Float, deltaY: Float) -> Unit,
+    onDrag: (Point) -> Unit,
     onDragEnd: (Point) -> Unit,
     onStart: () -> Unit,
     onPause: () -> Unit,
@@ -67,7 +67,13 @@ fun RootOverlay(
     onToggleResume: (Boolean) -> Unit,
     onToggleSingleAttemptMode: (Boolean) -> Unit,
     onUpdateSuccessKeywords: (List<String>) -> Unit,
-    onUpdateCaptchaKeywords: (List<String>) -> Unit
+    onUpdateCaptchaKeywords: (List<String>) -> Unit,
+    profiles: List<Profile>,
+    saveError: String?,
+    onLoadProfile: (Profile) -> Unit,
+    onSaveProfile: (String) -> Unit,
+    onDeleteProfile: (Profile) -> Unit,
+    onRenameProfile: (Profile, String) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         if (highlightedInfo != null) {
@@ -78,14 +84,13 @@ fun RootOverlay(
                 ConfigButtonUi(
                     nodeType = viewKey,
                     uiState = uiState,
-                    onDrag = onDrag,
+                    onDrag = { point -> onDrag(point) },
                     onDragEnd = onDragEnd
                 )
             }
             MAIN_CONTROLLER_KEY -> {
                 MainControllerUi(
                     uiState = uiState,
-                    onDrag = onDrag,
                     onStart = onStart,
                     onPause = onPause,
                     onStop = onStop,
@@ -98,7 +103,16 @@ fun RootOverlay(
                     onToggleResume = onToggleResume,
                     onToggleSingleAttemptMode = onToggleSingleAttemptMode,
                     onUpdateSuccessKeywords = onUpdateSuccessKeywords,
-                    onUpdateCaptchaKeywords = onUpdateCaptchaKeywords
+                    onUpdateCaptchaKeywords = onUpdateCaptchaKeywords,
+                    onUpdateMask = onUpdateMask,
+                    onUpdateHybridModeEnabled = onUpdateHybridModeEnabled,
+                    onUpdateHybridSuffixes = onUpdateHybridSuffixes,
+                    profiles = profiles,
+                    saveError = saveError,
+                    onLoadProfile = onLoadProfile,
+                    onSaveProfile = onSaveProfile,
+                    onDeleteProfile = onDeleteProfile,
+                    onRenameProfile = onRenameProfile
                 )
             }
         }
@@ -126,7 +140,6 @@ fun HighlightBox(bounds: Rect, nodeType: NodeType) {
 @Composable
 fun MainControllerUi(
     uiState: BruteforceState,
-    onDrag: (deltaX: Float, deltaY: Float) -> Unit,
     onStart: () -> Unit,
     onPause: () -> Unit,
     onStop: () -> Unit,
@@ -139,9 +152,16 @@ fun MainControllerUi(
     onToggleResume: (Boolean) -> Unit,
     onToggleSingleAttemptMode: (Boolean) -> Unit,
     onUpdateSuccessKeywords: (List<String>) -> Unit,
-    onUpdateCaptchaKeywords: (List<String>) -> Unit
+    onUpdateCaptchaKeywords: (List<String>) -> Unit,
+    profiles: List<Profile>,
+    saveError: String?,
+    onLoadProfile: (Profile) -> Unit,
+    onSaveProfile: (String) -> Unit,
+    onDeleteProfile: (Profile) -> Unit,
+    onRenameProfile: (Profile, String) -> Unit
 ) {
     var showSettingsDialog by rememberSaveable { mutableStateOf(false) }
+    var showProfileDialog by rememberSaveable { mutableStateOf(false) }
     val fabSize = 56.dp
 
     Box(
@@ -163,7 +183,8 @@ fun MainControllerUi(
             onClose = onClose,
             onToggleActionButtons = onToggleActionButtons,
             onShowSettings = { showSettingsDialog = true },
-            onSelectDictionary = onSelectDictionary
+            onSelectDictionary = onSelectDictionary,
+            onShowProfileManagement = { showProfileDialog = true }
         )
 
         if (showSettingsDialog) {
@@ -176,7 +197,22 @@ fun MainControllerUi(
                 onToggleSingleAttemptMode = onToggleSingleAttemptMode,
                 onUpdateSuccessKeywords = onUpdateSuccessKeywords,
                 onUpdateCaptchaKeywords = onUpdateCaptchaKeywords,
+                onUpdateMask = onUpdateMask,
+                onUpdateHybridModeEnabled = onUpdateHybridModeEnabled,
+                onUpdateHybridSuffixes = onUpdateHybridSuffixes,
                 onDismiss = { showSettingsDialog = false }
+            )
+        }
+
+        if (showProfileDialog) {
+            ProfileManagementDialog(
+                profiles = profiles,
+                saveError = saveError,
+                onLoadProfile = onLoadProfile,
+                onSaveProfile = onSaveProfile,
+                onDeleteProfile = onDeleteProfile,
+                onRenameProfile = onRenameProfile,
+                onDismiss = { showProfileDialog = false }
             )
         }
     }
@@ -186,7 +222,7 @@ fun MainControllerUi(
 fun ConfigButtonUi(
     nodeType: NodeType,
     uiState: BruteforceState,
-    onDrag: (deltaX: Float, deltaY: Float) -> Unit,
+    onDrag: (Point) -> Unit,
     onDragEnd: (Point) -> Unit
 ) {
     val buttonConfig = uiState.buttonConfigs[nodeType]
@@ -204,9 +240,16 @@ fun ConfigButtonUi(
                 }
                 .pointerInput(Unit) {
                     detectDragGestures(
-                        onDrag = { change, dragAmount ->
+                        onDrag = { change, _ ->
                             change.consume()
-                            onDrag(dragAmount.x, dragAmount.y)
+                            fabCoordinates?.let {
+                                val rootPos = it.positionInRoot()
+                                val center = Point(
+                                    (rootPos.x + it.size.width / 2f).roundToInt(),
+                                    (rootPos.y + it.size.height / 2f).roundToInt()
+                                )
+                                onDrag(center)
+                            }
                         },
                         onDragEnd = {
                             fabCoordinates?.let {
@@ -260,7 +303,8 @@ private fun ExpandableFabMenu(
     onClose: () -> Unit,
     onToggleActionButtons: () -> Unit,
     onShowSettings: () -> Unit,
-    onSelectDictionary: () -> Unit
+    onSelectDictionary: () -> Unit,
+    onShowProfileManagement: () -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     val status = uiState.status
@@ -305,6 +349,11 @@ private fun ExpandableFabMenu(
                 icon = Icons.Default.Close,
                 text = "Close",
                 onClick = onClose
+            ),
+            MindMapActionItem(
+                icon = Icons.Default.Person,
+                text = "Profiles",
+                onClick = onShowProfileManagement
             )
         )
     }
