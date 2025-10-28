@@ -17,6 +17,7 @@ import com.hereliesaz.et2bruteforce.model.CharacterSetType
 import com.hereliesaz.et2bruteforce.model.HighlightInfo
 import com.hereliesaz.et2bruteforce.model.NodeType
 import kotlinx.coroutines.delay
+import com.hereliesaz.et2bruteforce.model.Profile
 import com.hereliesaz.et2bruteforce.services.NodeInfo
 import com.hereliesaz.et2bruteforce.services.ScreenAnalysisResult
 import kotlinx.serialization.encodeToString
@@ -46,6 +47,12 @@ class BruteforceViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(BruteforceState())
     val uiState: StateFlow<BruteforceState> = _uiState.asStateFlow()
 
+    private val _profiles = MutableStateFlow<List<Profile>>(emptyList())
+    val profiles: StateFlow<List<Profile>> = _profiles.asStateFlow()
+
+    private val _saveError = MutableStateFlow<String?>(null)
+    val saveError: StateFlow<String?> = _saveError.asStateFlow()
+
     private var bruteforceJob: Job? = null
     private var highlightJob: Job? = null
 
@@ -55,24 +62,50 @@ class BruteforceViewModel @Inject constructor(
                 _uiState.update { it.copy(settings = settings) }
             }
         }
+        viewModelScope.launch {
+            settingsRepository.profilesFlow.collect { profiles ->
+                _profiles.value = profiles
+            }
+        }
         observeAccessibilityEvents()
-        loadConfiguration()
     }
 
-    fun saveConfiguration() {
+    fun saveProfile(name: String) {
         viewModelScope.launch {
-            val config = Json.encodeToString(_uiState.value.buttonConfigs)
-            settingsRepository.saveAutomationConfig(config)
+            val existingProfile = _profiles.value.find { it.name == name }
+            if (existingProfile != null) {
+                _saveError.value = "A profile with this name already exists."
+                return@launch
+            }
+            _saveError.value = null
+            val newProfile = Profile(name, _uiState.value.buttonConfigs)
+            val updatedProfiles = _profiles.value + newProfile
+            settingsRepository.saveProfiles(updatedProfiles)
         }
     }
 
-    fun loadConfiguration() {
+    fun loadProfile(profile: Profile) {
+        _uiState.update { it.copy(buttonConfigs = profile.buttonConfigs) }
+        checkIfReady()
+    }
+
+    fun deleteProfile(profile: Profile) {
         viewModelScope.launch {
-            settingsRepository.automationConfigFlow.first()?.let { config ->
-                val buttonConfigs = Json.decodeFromString<Map<NodeType, BruteforceState.ButtonConfig>>(config)
-                _uiState.update { it.copy(buttonConfigs = buttonConfigs) }
-                checkIfReady()
+            val updatedProfiles = _profiles.value - profile
+            settingsRepository.saveProfiles(updatedProfiles)
+        }
+    }
+
+    fun renameProfile(profile: Profile, newName: String) {
+        viewModelScope.launch {
+            val updatedProfiles = _profiles.value.map {
+                if (it == profile) {
+                    it.copy(name = newName)
+                } else {
+                    it
+                }
             }
+            settingsRepository.saveProfiles(updatedProfiles)
         }
     }
 
@@ -179,24 +212,6 @@ class BruteforceViewModel @Inject constructor(
         }
     }
 
-    fun updateMask(mask: String) {
-        viewModelScope.launch {
-            settingsRepository.updateMask(mask)
-        }
-    }
-
-    fun updateHybridModeEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.updateHybridModeEnabled(enabled)
-        }
-    }
-
-    fun updateHybridSuffixes(suffixes: List<String>) {
-        viewModelScope.launch {
-            settingsRepository.updateHybridSuffixes(suffixes)
-        }
-    }
-
     // --- New Action Request Methods ---
     fun updateButtonPosition(viewKey: Any, newPosition: Point) {
         when (viewKey) {
@@ -275,46 +290,11 @@ class BruteforceViewModel @Inject constructor(
             var attemptCounter = currentUiState.attemptCount // Resume count if paused
 
             try {
-                // --- Mask Phase ---
-                if (!currentSettings.mask.isNullOrEmpty()) {
-                    Log.d(TAG, "Starting mask phase.")
-                    bruteforceEngine.generateMaskCandidates(currentSettings)
-                        .catch { e ->
-                            Log.e(TAG, "Error in mask flow", e)
-                            updateStatus(BruteforceStatus.ERROR)
-                            _uiState.update { it.copy(errorMessage = "Mask Error: ${e.message}") }
-                            bruteforceJob?.cancel()
-                        }
-                        .collect { candidate ->
-                            ensureActive()
-                            if (uiState.value.status != BruteforceStatus.RUNNING) throw CancellationException("Status changed externally.")
-
-                            Log.v(TAG, "Attempting mask candidate: $candidate")
-                            _uiState.update { it.copy(currentAttempt = candidate, attemptCount = attemptCounter + 1) }
-
-                            val attemptResult = performSingleAttempt(inputNode, submitNode, popupNode, candidate, currentSettings)
-
-                            settingsRepository.updateLastAttempt(candidate)
-                            attemptCounter++
-
-                            handleAttemptResult(attemptResult, candidate)
-
-                            if (currentSettings.singleAttemptMode) {
-                                pauseBruteforce()
-                                return@collect
-                            }
-                        }
-                }
                 // --- Dictionary Phase ---
-                else if (!currentSettings.dictionaryUri.isNullOrEmpty()) {
+                if (!currentSettings.dictionaryUri.isNullOrEmpty()) {
                     Log.d(TAG, "Starting dictionary phase.")
                     var dictionaryCompletedSuccessfully = false
-                    val dictionaryFlow = if (currentSettings.hybridModeEnabled) {
-                        bruteforceEngine.generateHybridCandidates(currentSettings)
-                    } else {
-                        bruteforceEngine.generateDictionaryCandidates(currentSettings)
-                    }
-                    dictionaryFlow
+                    bruteforceEngine.generateDictionaryCandidates(currentSettings)
                         .onCompletion { if (it == null) dictionaryCompletedSuccessfully = true } // Mark completion if no error
                         .catch { e ->
                             Log.e(TAG, "Error in dictionary flow", e)

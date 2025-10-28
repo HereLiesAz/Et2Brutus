@@ -75,9 +75,7 @@
     <string name="main_stop_service">Stop Service</string>
     <string name="main_service_info">Enable permissions, then start the service. A floating button will appear.</string>
     <string name="accessibility_shortcut_toast">Shortcut detected, service starting...</string>
-    <string name="main_configuration">Configuration</string>
-    <string name="main_save_configuration">Save</string>
-    <string name="main_load_configuration">Load</string>
+    <string name="main_profiles">Profiles</string>
     <string name="title_activity_walkthrough">Walkthrough</string>
     <string name="walkthrough_welcome_title">Welcome!</string>
     <string name="walkthrough_welcome_text">This app helps you automate repetitive tasks by simulating screen taps.</string>

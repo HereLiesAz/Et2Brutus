@@ -181,6 +181,7 @@ fun MainScreen(
     onStopService: () -> Unit
 ) {
     val context = LocalContext.current
+    val profiles by viewModel.profiles.collectAsState()
     // Use LaunchedEffect or rememberUpdatedState if checks need to re-run automatically
     var hasOverlayPerm by remember { mutableStateOf(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) Settings.canDrawOverlays(context) else true) }
     var hasAccessPerm by remember { mutableStateOf(onCheckAccessibilityPermission()) }
@@ -254,25 +255,6 @@ fun MainScreen(
                 context.startActivity(Intent(context, InstructionActivity::class.java))
             }) {
                 Text(stringResource(R.string.main_view_instructions))
-            }
-
-            Card {
-                Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(stringResource(R.string.main_configuration), style = MaterialTheme.typography.titleMedium)
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        Button(onClick = { viewModel.saveConfiguration() }) {
-                            Text(stringResource(R.string.main_save_configuration))
-                        }
-                        Button(onClick = { viewModel.loadConfiguration() }) {
-                            Text(stringResource(R.string.main_load_configuration))
-                        }
-                    }
-                }
             }
         }
     }

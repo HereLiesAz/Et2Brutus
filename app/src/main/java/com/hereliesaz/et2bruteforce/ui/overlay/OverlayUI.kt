@@ -68,9 +68,12 @@ fun RootOverlay(
     onToggleSingleAttemptMode: (Boolean) -> Unit,
     onUpdateSuccessKeywords: (List<String>) -> Unit,
     onUpdateCaptchaKeywords: (List<String>) -> Unit,
-    onUpdateMask: (String) -> Unit,
-    onUpdateHybridModeEnabled: (Boolean) -> Unit,
-    onUpdateHybridSuffixes: (List<String>) -> Unit
+    profiles: List<Profile>,
+    saveError: String?,
+    onLoadProfile: (Profile) -> Unit,
+    onSaveProfile: (String) -> Unit,
+    onDeleteProfile: (Profile) -> Unit,
+    onRenameProfile: (Profile, String) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         if (highlightedInfo != null) {
@@ -103,7 +106,13 @@ fun RootOverlay(
                     onUpdateCaptchaKeywords = onUpdateCaptchaKeywords,
                     onUpdateMask = onUpdateMask,
                     onUpdateHybridModeEnabled = onUpdateHybridModeEnabled,
-                    onUpdateHybridSuffixes = onUpdateHybridSuffixes
+                    onUpdateHybridSuffixes = onUpdateHybridSuffixes,
+                    profiles = profiles,
+                    saveError = saveError,
+                    onLoadProfile = onLoadProfile,
+                    onSaveProfile = onSaveProfile,
+                    onDeleteProfile = onDeleteProfile,
+                    onRenameProfile = onRenameProfile
                 )
             }
         }
@@ -144,11 +153,15 @@ fun MainControllerUi(
     onToggleSingleAttemptMode: (Boolean) -> Unit,
     onUpdateSuccessKeywords: (List<String>) -> Unit,
     onUpdateCaptchaKeywords: (List<String>) -> Unit,
-    onUpdateMask: (String) -> Unit,
-    onUpdateHybridModeEnabled: (Boolean) -> Unit,
-    onUpdateHybridSuffixes: (List<String>) -> Unit
+    profiles: List<Profile>,
+    saveError: String?,
+    onLoadProfile: (Profile) -> Unit,
+    onSaveProfile: (String) -> Unit,
+    onDeleteProfile: (Profile) -> Unit,
+    onRenameProfile: (Profile, String) -> Unit
 ) {
     var showSettingsDialog by rememberSaveable { mutableStateOf(false) }
+    var showProfileDialog by rememberSaveable { mutableStateOf(false) }
     val fabSize = 56.dp
 
     Box(
@@ -170,7 +183,8 @@ fun MainControllerUi(
             onClose = onClose,
             onToggleActionButtons = onToggleActionButtons,
             onShowSettings = { showSettingsDialog = true },
-            onSelectDictionary = onSelectDictionary
+            onSelectDictionary = onSelectDictionary,
+            onShowProfileManagement = { showProfileDialog = true }
         )
 
         if (showSettingsDialog) {
@@ -187,6 +201,18 @@ fun MainControllerUi(
                 onUpdateHybridModeEnabled = onUpdateHybridModeEnabled,
                 onUpdateHybridSuffixes = onUpdateHybridSuffixes,
                 onDismiss = { showSettingsDialog = false }
+            )
+        }
+
+        if (showProfileDialog) {
+            ProfileManagementDialog(
+                profiles = profiles,
+                saveError = saveError,
+                onLoadProfile = onLoadProfile,
+                onSaveProfile = onSaveProfile,
+                onDeleteProfile = onDeleteProfile,
+                onRenameProfile = onRenameProfile,
+                onDismiss = { showProfileDialog = false }
             )
         }
     }
@@ -277,7 +303,8 @@ private fun ExpandableFabMenu(
     onClose: () -> Unit,
     onToggleActionButtons: () -> Unit,
     onShowSettings: () -> Unit,
-    onSelectDictionary: () -> Unit
+    onSelectDictionary: () -> Unit,
+    onShowProfileManagement: () -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     val status = uiState.status
@@ -322,6 +349,11 @@ private fun ExpandableFabMenu(
                 icon = Icons.Default.Close,
                 text = "Close",
                 onClick = onClose
+            ),
+            MindMapActionItem(
+                icon = Icons.Default.Person,
+                text = "Profiles",
+                onClick = onShowProfileManagement
             )
         )
     }
@@ -407,9 +439,6 @@ private fun SettingsDialog(
     onToggleSingleAttemptMode: (Boolean) -> Unit,
     onUpdateSuccessKeywords: (List<String>) -> Unit,
     onUpdateCaptchaKeywords: (List<String>) -> Unit,
-    onUpdateMask: (String) -> Unit,
-    onUpdateHybridModeEnabled: (Boolean) -> Unit,
-    onUpdateHybridSuffixes: (List<String>) -> Unit,
     onDismiss: () -> Unit
 ) {
     val settings = uiState.settings
@@ -497,40 +526,6 @@ private fun SettingsDialog(
                         onUpdateCaptchaKeywords(it.split(',').map { kw -> kw.trim() }.filter { kw -> kw.isNotEmpty() })
                     },
                     label = { Text("CAPTCHA Keywords (comma-separated)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                var maskText by remember(uiState.settings.mask) { mutableStateOf(uiState.settings.mask ?: "") }
-                OutlinedTextField(
-                    value = maskText,
-                    onValueChange = {
-                        maskText = it
-                        onUpdateMask(it)
-                    },
-                    label = { Text("Mask (e.g., pass****)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Switch(
-                        checked = settings.hybridModeEnabled,
-                        onCheckedChange = onUpdateHybridModeEnabled
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Hybrid Mode", style = MaterialTheme.typography.bodyMedium)
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-
-                var hybridSuffixesText by remember(uiState.settings.hybridSuffixes) { mutableStateOf(uiState.settings.hybridSuffixes.joinToString(",")) }
-                OutlinedTextField(
-                    value = hybridSuffixesText,
-                    onValueChange = {
-                        hybridSuffixesText = it
-                        onUpdateHybridSuffixes(it.split(',').map { s -> s.trim() }.filter { s -> s.isNotEmpty() })
-                    },
-                    label = { Text("Hybrid Suffixes (comma-separated)") },
                     modifier = Modifier.fillMaxWidth()
                 )
             }

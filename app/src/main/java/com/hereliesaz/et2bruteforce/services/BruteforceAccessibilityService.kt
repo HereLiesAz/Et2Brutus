@@ -431,14 +431,14 @@ class BruteforceAccessibilityService : AccessibilityService() {
 
         fun calculateScore(candidate: AccessibilityNodeInfo, target: NodeInfo): Int {
             var score = 0
-            if (candidate.viewIdResourceName == target.viewIdResourceName) score += 10
-            if (candidate.className == target.className) score += 2
-            if (candidate.text == target.text) score += 5
-            if (candidate.contentDescription == target.contentDescription) score += 5
+            if (!candidate.viewIdResourceName.isNullOrEmpty() && candidate.viewIdResourceName == target.viewIdResourceName) score += 10
+            if (candidate.className?.equals(target.className) == true) score += 2
+            if (candidate.text?.equals(target.text) == true) score += 5
+            if (candidate.contentDescription?.equals(target.contentDescription) == true) score += 5
             if (candidate.isClickable == target.isClickable) score += 1
             if (candidate.isEditable == target.isEditable) score += 1
-            if (candidate.parent?.className == target.parentInfo?.className) score += 3
-            if (candidate.parent?.viewIdResourceName == target.parentInfo?.viewIdResourceName) score += 5
+            if (candidate.parent?.className?.equals(target.parentInfo?.className) == true) score += 3
+            if (!candidate.parent?.viewIdResourceName.isNullOrEmpty() && candidate.parent?.viewIdResourceName == target.parentInfo?.viewIdResourceName) score += 5
             return score
         }
 

@@ -2,13 +2,14 @@ package com.hereliesaz.et2bruteforce.data
 
 import android.content.Context
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
+import com.hereliesaz.et2bruteforce.model.Profile
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -18,7 +19,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class SettingsRepository @Inject constructor(@ApplicationContext private val context: Context) {
 
     private object PreferencesKeys {
-        val AUTOMATION_CONFIG = stringPreferencesKey("automation_config")
+        val PROFILES = stringPreferencesKey("profiles")
         val CHARACTER_LENGTH = intPreferencesKey("character_length")
         val CHARACTER_SET_TYPE = stringPreferencesKey("character_set_type")
         val DICTIONARY_URI = stringPreferencesKey("dictionary_uri")
@@ -31,9 +32,6 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
         val CONTROLLER_POSITION_X = intPreferencesKey("controller_position_x")
         val CONTROLLER_POSITION_Y = intPreferencesKey("controller_position_y")
         val WALKTHROUGH_COMPLETED = booleanPreferencesKey("walkthrough_completed")
-        val MASK = stringPreferencesKey("mask")
-        val HYBRID_MODE_ENABLED = booleanPreferencesKey("hybrid_mode_enabled")
-        val HYBRID_SUFFIXES = stringSetPreferencesKey("hybrid_suffixes")
     }
 
     val settingsFlow: Flow<BruteforceSettings> = context.dataStore.data
@@ -49,10 +47,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
                 successKeywords = preferences[PreferencesKeys.SUCCESS_KEYWORDS]?.toList() ?: listOf("success", "welcome", "logged in"),
                 captchaKeywords = preferences[PreferencesKeys.CAPTCHA_KEYWORDS]?.toList() ?: listOf("captcha", "verify you", "robot"),
                 controllerPosition = Point(preferences[PreferencesKeys.CONTROLLER_POSITION_X] ?: 100, preferences[PreferencesKeys.CONTROLLER_POSITION_Y] ?: 300),
-                walkthroughCompleted = preferences[PreferencesKeys.WALKTHROUGH_COMPLETED] ?: false,
-                mask = preferences[PreferencesKeys.MASK],
-                hybridModeEnabled = preferences[PreferencesKeys.HYBRID_MODE_ENABLED] ?: false,
-                hybridSuffixes = preferences[PreferencesKeys.HYBRID_SUFFIXES]?.toList() ?: listOf("123", "!", "2024")
+                walkthroughCompleted = preferences[PreferencesKeys.WALKTHROUGH_COMPLETED] ?: false
             )
         }
 
@@ -70,7 +65,11 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
 
     suspend fun updateDictionaryUri(uri: Uri?) {
         context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.DICTIONARY_URI] = uri.toString()
+            if (uri == null) {
+                preferences.remove(PreferencesKeys.DICTIONARY_URI)
+            } else {
+                preferences[PreferencesKeys.DICTIONARY_URI] = uri.toString()
+            }
         }
     }
 
@@ -94,7 +93,11 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
 
     suspend fun updateLastAttempt(attempt: String?) {
         context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.LAST_ATTEMPT] = attempt ?: ""
+            if (attempt == null) {
+                preferences.remove(PreferencesKeys.LAST_ATTEMPT)
+            } else {
+                preferences[PreferencesKeys.LAST_ATTEMPT] = attempt
+            }
         }
     }
 
@@ -123,32 +126,16 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
         }
     }
 
-    suspend fun updateMask(mask: String?) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.MASK] = mask ?: ""
-        }
-    }
-
-    suspend fun updateHybridModeEnabled(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.HYBRID_MODE_ENABLED] = enabled
-        }
-    }
-
-    suspend fun updateHybridSuffixes(suffixes: List<String>) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.HYBRID_SUFFIXES] = suffixes.toSet()
-        }
-    }
-
-    val automationConfigFlow: Flow<String?> = context.dataStore.data
+    val profilesFlow: Flow<List<Profile>> = context.dataStore.data
         .map { preferences ->
-            preferences[PreferencesKeys.AUTOMATION_CONFIG]
+            preferences[PreferencesKeys.PROFILES]?.let {
+                Json.decodeFromString<List<Profile>>(it)
+            } ?: emptyList()
         }
 
-    suspend fun saveAutomationConfig(config: String) {
+    suspend fun saveProfiles(profiles: List<Profile>) {
         context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.AUTOMATION_CONFIG] = config
+            preferences[PreferencesKeys.PROFILES] = Json.encodeToString(profiles)
         }
     }
 }
