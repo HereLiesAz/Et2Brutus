@@ -73,6 +73,7 @@ dependencies {
 
     // Activity Compose
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.navigation.compose)
 
     // Jetpack Compose (BOM ensures compatible versions)
     implementation(platform(libs.androidx.compose.bom))

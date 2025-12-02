@@ -3,14 +3,14 @@ package com.hereliesaz.et2bruteforce.ui.aznavrail.internal
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.Dp
 import androidx.navigation.NavController
-import com.hereliesaz.et2bruteforce.ui.aznavrail.AzNavRailScope
+import com.hereliesaz.et2bruteforce.ui.aznavrail.AzNavRailScopeImpl
 import com.hereliesaz.et2bruteforce.ui.aznavrail.model.AzNavItem
 import com.hereliesaz.et2bruteforce.ui.aznavrail.AzNavRailButton
 
 @Composable
-fun RailItems(
+internal fun RailItems(
     items: List<AzNavItem>,
-    scope: AzNavRailScope,
+    scope: AzNavRailScopeImpl,
     navController: NavController?,
     currentDestination: String?,
     buttonSize: Dp,
@@ -27,7 +27,7 @@ fun RailItems(
                 if (item.isCycler) {
                     onRailCyclerClick(item)
                 } else if (item.isHost) {
-                    // Host click?
+                    // Host click logic
                 } else {
                     scope.onClickMap[item.id]?.invoke()
                     onItemSelected(item)

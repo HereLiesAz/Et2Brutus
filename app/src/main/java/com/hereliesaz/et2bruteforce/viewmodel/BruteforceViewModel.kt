@@ -212,6 +212,18 @@ class BruteforceViewModel @Inject constructor(
         }
     }
 
+    fun updateMask(mask: String) {
+        // TODO: Implement mask update logic
+    }
+
+    fun updateHybridModeEnabled(enabled: Boolean) {
+        // TODO: Implement hybrid mode toggle
+    }
+
+    fun updateHybridSuffixes(suffixes: List<String>) {
+        // TODO: Implement hybrid suffixes update
+    }
+
     // --- New Action Request Methods ---
     fun updateButtonPosition(viewKey: Any, newPosition: Point) {
         when (viewKey) {

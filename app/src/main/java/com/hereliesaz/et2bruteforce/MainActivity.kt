@@ -220,7 +220,7 @@ fun MainScreen(
                         onRequestPermission = onRequestAccessibilityPermission
                     )
 
-                    Button(onClick = refreshPermissions) {
+                    Button(onClick = { refreshPermissions() }) {
                         Text(stringResource(R.string.main_recheck_permissions))
                     }
                 }

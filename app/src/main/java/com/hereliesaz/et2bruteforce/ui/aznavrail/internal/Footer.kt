@@ -9,14 +9,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.hereliesaz.et2bruteforce.ui.aznavrail.AzNavRailScope
+import com.hereliesaz.et2bruteforce.ui.aznavrail.AzNavRailScopeImpl
 
 @Composable
-fun Footer(
+internal fun Footer(
     appName: String,
     onToggle: () -> Unit,
     onUndock: () -> Unit,
-    scope: AzNavRailScope
+    scope: AzNavRailScopeImpl
 ) {
     Box(
         modifier = Modifier
