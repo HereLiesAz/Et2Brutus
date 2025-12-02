@@ -5,8 +5,13 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
+import android.graphics.Point
+import android.net.Uri
+import com.hereliesaz.et2bruteforce.model.BruteforceSettings
+import com.hereliesaz.et2bruteforce.model.CharacterSetType
 import com.hereliesaz.et2bruteforce.model.Profile
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -50,6 +55,10 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
                 walkthroughCompleted = preferences[PreferencesKeys.WALKTHROUGH_COMPLETED] ?: false
             )
         }
+
+    suspend fun getSettingsSnapshot(): BruteforceSettings {
+        return settingsFlow.first()
+    }
 
     suspend fun updateCharacterLength(length: Int) {
         context.dataStore.edit { preferences ->

@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.serialization.Serializable
+import com.hereliesaz.et2bruteforce.R
+import com.hereliesaz.et2bruteforce.model.RectSerializer
 
 /**
  * Data class holding descriptive information about a UI element found by the service.
@@ -37,6 +39,7 @@ data class NodeInfo(
     val text: CharSequence?,
     val contentDescription: CharSequence?,
     val viewIdResourceName: String?,
+    @Serializable(with = RectSerializer::class)
     val boundsInScreen: Rect,
     val isClickable: Boolean,
     val isEditable: Boolean,

@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.ksp) // <-- RE-ADDED THIS CRITICAL PLUGIN
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.kotlin.parcelize)
 }
 
 android {
@@ -72,6 +73,7 @@ dependencies {
 
     // Activity Compose
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.navigation.compose)
 
     // Jetpack Compose (BOM ensures compatible versions)
     implementation(platform(libs.androidx.compose.bom))
