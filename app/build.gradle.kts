@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.ksp) // <-- RE-ADDED THIS CRITICAL PLUGIN
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.kotlin.parcelize)
 }
 
 android {

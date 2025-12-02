@@ -42,8 +42,11 @@ import com.hereliesaz.et2bruteforce.model.CharacterSetType
 import com.hereliesaz.et2bruteforce.R
 import com.hereliesaz.et2bruteforce.model.NodeType
 import com.hereliesaz.et2bruteforce.model.getColor
+import com.hereliesaz.et2bruteforce.model.Profile
 import com.hereliesaz.et2bruteforce.services.FloatingControlService.Companion.MAIN_CONTROLLER_KEY
 import com.hereliesaz.et2bruteforce.ui.theme.*
+import com.hereliesaz.et2bruteforce.ui.aznavrail.AzNavRail
+import com.hereliesaz.et2bruteforce.ui.aznavrail.model.AzButtonShape
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
@@ -53,7 +56,7 @@ fun RootOverlay(
     viewKey: Any,
     uiState: BruteforceState,
     highlightedInfo: com.hereliesaz.et2bruteforce.model.HighlightInfo?,
-    onDrag: (Point) -> Unit,
+    onDrag: (Float, Float) -> Unit,
     onDragEnd: (Point) -> Unit,
     onStart: () -> Unit,
     onPause: () -> Unit,
@@ -73,7 +76,10 @@ fun RootOverlay(
     onLoadProfile: (Profile) -> Unit,
     onSaveProfile: (String) -> Unit,
     onDeleteProfile: (Profile) -> Unit,
-    onRenameProfile: (Profile, String) -> Unit
+    onRenameProfile: (Profile, String) -> Unit,
+    onUpdateMask: (String) -> Unit,
+    onUpdateHybridModeEnabled: (Boolean) -> Unit,
+    onUpdateHybridSuffixes: (List<String>) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         if (highlightedInfo != null) {
@@ -84,13 +90,14 @@ fun RootOverlay(
                 ConfigButtonUi(
                     nodeType = viewKey,
                     uiState = uiState,
-                    onDrag = { point -> onDrag(point) },
+                    onDrag = { x, y -> onDrag(x, y) },
                     onDragEnd = onDragEnd
                 )
             }
             MAIN_CONTROLLER_KEY -> {
                 MainControllerUi(
                     uiState = uiState,
+                    onDrag = onDrag,
                     onStart = onStart,
                     onPause = onPause,
                     onStop = onStop,
@@ -140,6 +147,7 @@ fun HighlightBox(bounds: Rect, nodeType: NodeType) {
 @Composable
 fun MainControllerUi(
     uiState: BruteforceState,
+    onDrag: (Float, Float) -> Unit,
     onStart: () -> Unit,
     onPause: () -> Unit,
     onStop: () -> Unit,
@@ -153,6 +161,9 @@ fun MainControllerUi(
     onToggleSingleAttemptMode: (Boolean) -> Unit,
     onUpdateSuccessKeywords: (List<String>) -> Unit,
     onUpdateCaptchaKeywords: (List<String>) -> Unit,
+    onUpdateMask: (String) -> Unit,
+    onUpdateHybridModeEnabled: (Boolean) -> Unit,
+    onUpdateHybridSuffixes: (List<String>) -> Unit,
     profiles: List<Profile>,
     saveError: String?,
     onLoadProfile: (Profile) -> Unit,
@@ -162,59 +173,88 @@ fun MainControllerUi(
 ) {
     var showSettingsDialog by rememberSaveable { mutableStateOf(false) }
     var showProfileDialog by rememberSaveable { mutableStateOf(false) }
-    val fabSize = 56.dp
+    val status = uiState.status
 
-    Box(
-        modifier = Modifier
-            .wrapContentSize()
-            .padding(fabSize / 2)
-            .pointerInput(Unit) {
-                detectDragGestures { change, dragAmount ->
-                    change.consume()
-                    onDrag(dragAmount.x, dragAmount.y)
-                }
-            }
+    AzNavRail(
+        onRailDrag = onDrag
     ) {
-        ExpandableFabMenu(
-            uiState = uiState,
-            onStart = onStart,
-            onPause = onPause,
-            onStop = onStop,
-            onClose = onClose,
-            onToggleActionButtons = onToggleActionButtons,
-            onShowSettings = { showSettingsDialog = true },
-            onSelectDictionary = onSelectDictionary,
-            onShowProfileManagement = { showProfileDialog = true }
+        azSettings(
+            enableRailDragging = true,
+            displayAppNameInHeader = false
         )
 
-        if (showSettingsDialog) {
-            SettingsDialog(
-                uiState = uiState,
-                onUpdateLength = onUpdateLength,
-                onUpdateCharset = onUpdateCharset,
-                onUpdatePace = onUpdatePace,
-                onToggleResume = onToggleResume,
-                onToggleSingleAttemptMode = onToggleSingleAttemptMode,
-                onUpdateSuccessKeywords = onUpdateSuccessKeywords,
-                onUpdateCaptchaKeywords = onUpdateCaptchaKeywords,
-                onUpdateMask = onUpdateMask,
-                onUpdateHybridModeEnabled = onUpdateHybridModeEnabled,
-                onUpdateHybridSuffixes = onUpdateHybridSuffixes,
-                onDismiss = { showSettingsDialog = false }
-            )
-        }
+        azMenuItem(
+            id = "start",
+            text = "Start",
+            disabled = !(status == BruteforceStatus.READY || status == BruteforceStatus.PAUSED),
+            onClick = onStart
+        )
+        azMenuItem(
+            id = "pause",
+            text = "Pause",
+            disabled = status != BruteforceStatus.RUNNING,
+            onClick = onPause
+        )
+        azMenuItem(
+            id = "stop",
+            text = "Stop",
+            disabled = status == BruteforceStatus.IDLE,
+            onClick = onStop
+        )
+        azMenuItem(
+            id = "dictionary",
+            text = "Dictionary",
+            onClick = onSelectDictionary
+        )
+        azMenuItem(
+            id = "settings",
+            text = "Settings",
+            onClick = { showSettingsDialog = true }
+        )
+        azMenuItem(
+            id = "buttons",
+            text = if (uiState.actionButtonsEnabled) "Disable Buttons" else "Enable Buttons",
+            onClick = onToggleActionButtons
+        )
+        azMenuItem(
+            id = "profiles",
+            text = "Profiles",
+            onClick = { showProfileDialog = true }
+        )
+        azMenuItem(
+            id = "close",
+            text = "Close",
+            onClick = onClose
+        )
+    }
 
-        if (showProfileDialog) {
-            ProfileManagementDialog(
-                profiles = profiles,
-                saveError = saveError,
-                onLoadProfile = onLoadProfile,
-                onSaveProfile = onSaveProfile,
-                onDeleteProfile = onDeleteProfile,
-                onRenameProfile = onRenameProfile,
-                onDismiss = { showProfileDialog = false }
-            )
-        }
+    if (showSettingsDialog) {
+        SettingsDialog(
+            uiState = uiState,
+            onUpdateLength = onUpdateLength,
+            onUpdateCharset = onUpdateCharset,
+            onUpdatePace = onUpdatePace,
+            onToggleResume = onToggleResume,
+            onToggleSingleAttemptMode = onToggleSingleAttemptMode,
+            onUpdateSuccessKeywords = onUpdateSuccessKeywords,
+            onUpdateCaptchaKeywords = onUpdateCaptchaKeywords,
+            onUpdateMask = onUpdateMask,
+            onUpdateHybridModeEnabled = onUpdateHybridModeEnabled,
+            onUpdateHybridSuffixes = onUpdateHybridSuffixes,
+            onDismiss = { showSettingsDialog = false }
+        )
+    }
+
+    if (showProfileDialog) {
+        ProfileManagementDialog(
+            profiles = profiles,
+            saveError = saveError,
+            onLoadProfile = onLoadProfile,
+            onSaveProfile = onSaveProfile,
+            onDeleteProfile = onDeleteProfile,
+            onRenameProfile = onRenameProfile,
+            onDismiss = { showProfileDialog = false }
+        )
     }
 }
 
@@ -222,7 +262,7 @@ fun MainControllerUi(
 fun ConfigButtonUi(
     nodeType: NodeType,
     uiState: BruteforceState,
-    onDrag: (Point) -> Unit,
+    onDrag: (Float, Float) -> Unit,
     onDragEnd: (Point) -> Unit
 ) {
     val buttonConfig = uiState.buttonConfigs[nodeType]
@@ -240,16 +280,9 @@ fun ConfigButtonUi(
                 }
                 .pointerInput(Unit) {
                     detectDragGestures(
-                        onDrag = { change, _ ->
+                        onDrag = { change, dragAmount ->
                             change.consume()
-                            fabCoordinates?.let {
-                                val rootPos = it.positionInRoot()
-                                val center = Point(
-                                    (rootPos.x + it.size.width / 2f).roundToInt(),
-                                    (rootPos.y + it.size.height / 2f).roundToInt()
-                                )
-                                onDrag(center)
-                            }
+                            onDrag(dragAmount.x, dragAmount.y)
                         },
                         onDragEnd = {
                             fabCoordinates?.let {
@@ -287,148 +320,6 @@ fun ConfigButtonUi(
     }
 }
 
-private data class MindMapActionItem(
-    val icon: ImageVector,
-    val text: String,
-    val enabled: Boolean = true,
-    val onClick: () -> Unit
-)
-
-@Composable
-private fun ExpandableFabMenu(
-    uiState: BruteforceState,
-    onStart: () -> Unit,
-    onPause: () -> Unit,
-    onStop: () -> Unit,
-    onClose: () -> Unit,
-    onToggleActionButtons: () -> Unit,
-    onShowSettings: () -> Unit,
-    onSelectDictionary: () -> Unit,
-    onShowProfileManagement: () -> Unit
-) {
-    var isExpanded by remember { mutableStateOf(false) }
-    val status = uiState.status
-    val actionButtonsEnabled = uiState.actionButtonsEnabled
-
-    val items = remember(status, actionButtonsEnabled) {
-        listOf(
-            MindMapActionItem(
-                icon = Icons.Default.PlayArrow,
-                text = "Start",
-                enabled = status == BruteforceStatus.READY || status == BruteforceStatus.PAUSED,
-                onClick = onStart
-            ),
-            MindMapActionItem(
-                icon = Icons.Default.Pause,
-                text = "Pause",
-                enabled = status == BruteforceStatus.RUNNING,
-                onClick = onPause
-            ),
-            MindMapActionItem(
-                icon = Icons.Default.Stop,
-                text = "Stop",
-                enabled = status != BruteforceStatus.IDLE,
-                onClick = onStop
-            ),
-            MindMapActionItem(
-                icon = Icons.Default.Book,
-                text = "Dictionary",
-                onClick = onSelectDictionary
-            ),
-            MindMapActionItem(
-                icon = Icons.Default.Settings,
-                text = "Settings",
-                onClick = onShowSettings
-            ),
-            MindMapActionItem(
-                icon = if (actionButtonsEnabled) Icons.Default.Cancel else Icons.Filled.PlayCircleOutline,
-                text = if (actionButtonsEnabled) "Disable Buttons" else "Enable Buttons",
-                onClick = onToggleActionButtons
-            ),
-            MindMapActionItem(
-                icon = Icons.Default.Close,
-                text = "Close",
-                onClick = onClose
-            ),
-            MindMapActionItem(
-                icon = Icons.Default.Person,
-                text = "Profiles",
-                onClick = onShowProfileManagement
-            )
-        )
-    }
-
-    Box(contentAlignment = Alignment.TopEnd) {
-        FloatingActionButton(
-            onClick = { isExpanded = !isExpanded },
-            shape = CircleShape,
-        ) {
-            Icon(
-                imageVector = Icons.Default.VpnKey,
-                contentDescription = "App Icon",
-                modifier = Modifier.size(56.dp)
-            )
-        }
-        AnimatedVisibility(visible = isExpanded) {
-            Column(
-                modifier = Modifier.padding(top = 64.dp), // fab size (56) + spacing (8)
-
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items.forEachIndexed { index, item ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            shape = CircleShape,
-                            color = when (index) {
-                                0 -> ButtonColor1
-                                1 -> ButtonColor2
-                                2 -> ButtonColor3
-                                3 -> ButtonColor4
-                                4 -> ButtonColor5
-                                else -> MaterialTheme.colorScheme.secondaryContainer
-                            }.copy(alpha = 0.9f)
-                        ) {
-                            Text(
-                                text = item.text,
-                                modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontSize = 12.sp
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        FloatingActionButton(
-                            onClick = { if (item.enabled) item.onClick() },
-                            shape = CircleShape,
-                            modifier = Modifier.size(40.dp),
-                            containerColor = when (index) {
-                                0 -> ButtonColor1
-                                1 -> ButtonColor2
-                                2 -> ButtonColor3
-                                3 -> ButtonColor4
-                                4 -> ButtonColor5
-                                else -> MaterialTheme.colorScheme.secondaryContainer
-                            }
-                        ) {
-                            Icon(item.icon, contentDescription = item.text, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                        }
-                    }
-                }
-            }
-        }
-        FloatingActionButton(
-            onClick = { isExpanded = !isExpanded },
-            shape = CircleShape,
-        ) {
-            Icon(
-                painter = painterResource(id = com.hereliesaz.et2bruteforce.R.drawable.ic_launcher_foreground),
-                contentDescription = "App Icon",
-                modifier = Modifier.size(56.dp)
-            )
-        }
-    }
-}
-
 @Composable
 private fun SettingsDialog(
     uiState: BruteforceState,
@@ -439,6 +330,9 @@ private fun SettingsDialog(
     onToggleSingleAttemptMode: (Boolean) -> Unit,
     onUpdateSuccessKeywords: (List<String>) -> Unit,
     onUpdateCaptchaKeywords: (List<String>) -> Unit,
+    onUpdateMask: (String) -> Unit,
+    onUpdateHybridModeEnabled: (Boolean) -> Unit,
+    onUpdateHybridSuffixes: (List<String>) -> Unit,
     onDismiss: () -> Unit
 ) {
     val settings = uiState.settings
