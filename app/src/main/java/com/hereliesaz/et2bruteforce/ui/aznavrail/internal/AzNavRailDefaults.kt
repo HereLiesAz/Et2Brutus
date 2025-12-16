@@ -9,4 +9,8 @@ object AzNavRailDefaults {
     const val SWIPE_THRESHOLD_PX = 100f
     val RailContentHorizontalPadding = 8.dp
     val RailContentVerticalArrangement = 16.dp
+    val MenuItemHorizontalPadding = 24.dp
+    val MenuItemVerticalPadding = 12.dp
+    val RailContentSpacerHeight = 40.dp
+    val FooterSpacerHeight = 16.dp
 }

@@ -175,12 +175,11 @@ fun MainControllerUi(
     var showProfileDialog by rememberSaveable { mutableStateOf(false) }
     val status = uiState.status
 
-    AzNavRail(
-        onRailDrag = onDrag
-    ) {
+    AzNavRail {
         azSettings(
             enableRailDragging = true,
-            displayAppNameInHeader = false
+            displayAppNameInHeader = false,
+            onRailDrag = onDrag
         )
 
         azMenuItem(

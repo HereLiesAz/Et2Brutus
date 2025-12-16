@@ -37,7 +37,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -51,11 +50,17 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
-import androidx.core.graphics.drawable.toBitmap
 import androidx.navigation.NavController
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import androidx.core.content.ContextCompat
+import androidx.compose.runtime.DisposableEffect
+import coil.compose.rememberAsyncImagePainter
 import com.hereliesaz.et2bruteforce.ui.aznavrail.internal.AzNavRailDefaults
 import com.hereliesaz.et2bruteforce.ui.aznavrail.internal.AzNavRailLogger
-import com.hereliesaz.et2bruteforce.ui.aznavrail.internal.BubbleHelper
+import com.hereliesaz.et2bruteforce.ui.aznavrail.internal.OverlayHelper
 import com.hereliesaz.et2bruteforce.ui.aznavrail.internal.CenteredPopupPositionProvider
 import com.hereliesaz.et2bruteforce.ui.aznavrail.internal.CyclerTransientState
 import com.hereliesaz.et2bruteforce.ui.aznavrail.internal.Footer
@@ -63,6 +68,7 @@ import com.hereliesaz.et2bruteforce.ui.aznavrail.internal.MenuItem
 import com.hereliesaz.et2bruteforce.ui.aznavrail.internal.RailItems
 import com.hereliesaz.et2bruteforce.ui.aznavrail.model.AzHeaderIconShape
 import com.hereliesaz.et2bruteforce.ui.aznavrail.model.AzNavItem
+import com.hereliesaz.et2bruteforce.ui.aznavrail.service.LocalAzNavRailOverlayController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.pow
@@ -70,6 +76,7 @@ import kotlin.math.roundToInt
 
 object AzNavRail {
     const val noTitle = "AZNAVRAIL_NO_TITLE"
+    const val EXTRA_ROUTE = "com.hereliesaz.aznavrail.extra.ROUTE"
 }
 
 @Composable
@@ -80,7 +87,6 @@ fun AzNavRail(
     isLandscape: Boolean = false,
     initiallyExpanded: Boolean = false,
     disableSwipeToOpen: Boolean = false,
-    onRailDrag: ((Float, Float) -> Unit)? = null,
     content: AzNavRailScope.() -> Unit
 ) {
     val scope = remember { AzNavRailScopeImpl() }
@@ -101,6 +107,7 @@ fun AzNavRail(
     val context = LocalContext.current
     val packageManager = context.packageManager
     val packageName = context.packageName
+    val overlayController = LocalAzNavRailOverlayController.current
 
     val appName = remember(packageName) {
         try {
@@ -121,10 +128,43 @@ fun AzNavRail(
         }
     }
 
-    val initialExpansion = if (scope.bubbleMode) true else initiallyExpanded
-    var isExpanded by rememberSaveable(initialExpansion) { mutableStateOf(initialExpansion) }
+    // Force Footer Text Color: use color of first item, or primary if not set/available
+    val footerColor = remember(scope.navItems) {
+        scope.navItems.firstOrNull()?.color ?: Color.Unspecified
+    }
+
+    var isExpandedInternal by rememberSaveable(initiallyExpanded) { mutableStateOf(initiallyExpanded) }
+    // If overlayController is present, isExpanded is always false.
+    // Use a derived boolean for read operations to enforce logic, but write to internal state (or ignore if blocked).
+
+    val isExpandedState = remember(overlayController) {
+        object : androidx.compose.runtime.MutableState<Boolean> {
+            override var value: Boolean
+                get() = if (overlayController != null) false else isExpandedInternal
+                set(v) {
+                     if (overlayController == null) isExpandedInternal = v
+                }
+            override fun component1() = value
+            override fun component2(): (Boolean) -> Unit = { value = it }
+        }
+    }
+    var isExpanded by isExpandedState
+
     var railOffset by remember { mutableStateOf(IntOffset.Zero) }
+    // If initially expanded, we are not floating. But if initially NOT expanded, we might be?
+    // Actually, FAB mode is triggered by user action or specific config.
+    // If the rail is meant to be in FAB mode initially (e.g. for Overlay), the user should use `onUndock` logic
+    // or just start in a state that looks like FAB.
+    // However, `isFloating` state determines if we show just the header (FAB) or the rail.
+    // For Overlay, we likely want `isFloating = true` initially if it's "undocked".
+    // But `initiallyExpanded` handles "Expanded vs Collapsed".
+    // "Floating" is "Collapsed to just a FAB".
+
+    // Logic: If onRailDrag is provided, we might assume we are in a 'floating window' context.
+    // In floating window context, 'isFloating' usually means 'collapsed to FAB'.
+    // If 'initiallyExpanded' is true, we show full rail.
     var isFloating by remember { mutableStateOf(false) }
+
     var showFloatingButtons by remember { mutableStateOf(false) }
     var wasVisibleOnDragStart by remember { mutableStateOf(false) }
     var isAppIcon by remember { mutableStateOf(!scope.displayAppNameInHeader) }
@@ -197,12 +237,28 @@ fun AzNavRail(
 
     LaunchedEffect(showFloatingButtons) {
         if (showFloatingButtons) {
-            val screenHeightPx = with(density) { screenHeight.toPx() }
-            val bottomBound = screenHeightPx * 0.9f
-            val railBottom = railOffset.y + headerHeight + railItemsHeight
-            if (railBottom > bottomBound) {
-                val newY = bottomBound - headerHeight - railItemsHeight
-                railOffset = IntOffset(railOffset.x, newY.roundToInt())
+            // Only apply screen bounds clamping if we are NOT using external drag (Overlay mode might have its own bounds)
+            if (scope.onRailDrag == null && overlayController == null) {
+                val screenHeightPx = with(density) { screenHeight.toPx() }
+                val bottomBound = screenHeightPx * 0.9f
+                val railBottom = railOffset.y + headerHeight + railItemsHeight
+                if (railBottom > bottomBound) {
+                    val newY = bottomBound - headerHeight - railItemsHeight
+                    railOffset = IntOffset(railOffset.x, newY.roundToInt())
+                }
+            }
+        }
+    }
+
+    val activity = LocalContext.current as? androidx.activity.ComponentActivity
+    LaunchedEffect(activity) {
+        activity?.intent?.let { intent ->
+            if (intent.hasExtra(AzNavRail.EXTRA_ROUTE)) {
+                val route = intent.getStringExtra(AzNavRail.EXTRA_ROUTE)
+                if (route != null) {
+                    navController?.navigate(route)
+                    intent.removeExtra(AzNavRail.EXTRA_ROUTE)
+                }
             }
         }
     }
@@ -243,8 +299,16 @@ fun AzNavRail(
             NavigationRail(
                 modifier = Modifier
                     .width(railWidth)
-                    .offset { railOffset },
-                containerColor = if (isExpanded) MaterialTheme.colorScheme.surface.copy(alpha = 0.95f) else Color.Transparent,
+                    .offset {
+                         if (overlayController != null) {
+                             overlayController.contentOffset.value
+                         } else {
+                             railOffset
+                         }
+                    },
+                containerColor = if (isExpanded) MaterialTheme.colorScheme.surface.copy(
+                    alpha = 0.95f
+                ) else Color.Transparent,
                 header = {
                     Box(
                         modifier = Modifier
@@ -253,29 +317,43 @@ fun AzNavRail(
                             .pointerInput(
                                 isFloating,
                                 scope.enableRailDragging,
-                                scope.displayAppNameInHeader
+                                scope.displayAppNameInHeader,
+                                scope.onRailDrag,
+                                overlayController
                             ) {
                                 detectTapGestures(
                                     onTap = {
                                         if (isFloating) {
                                             showFloatingButtons = !showFloatingButtons
                                         } else {
-                                            isExpanded = !isExpanded
+                                            // Only allow expanding if NOT in overlay mode
+                                            if (overlayController == null) {
+                                                isExpanded = !isExpanded
+                                            }
                                         }
                                     },
                                     onLongPress = {
                                         if (isFloating) {
                                             // Long press in FAB mode -> dock
-                                            if (onRailDrag == null) {
+                                            // If dragging externally, we might not want to reset railOffset to Zero relative to container?
+                                            // But let's keep behavior consistent: Docking means exiting FAB mode.
+
+                                            // If onRailDrag is set, we probably shouldn't reset railOffset because we are moving the window.
+                                            // But 'docking' usually implies returning to the side of the screen.
+                                            // In Overlay mode, 'docking' might not make sense or might mean 'stick to edge'.
+                                            // For now, if onRailDrag is present, we assume the user controls position.
+
+                                            if (scope.onRailDrag == null && overlayController == null) {
                                                 railOffset = IntOffset.Zero
                                             }
+
                                             isFloating = false
                                             if (scope.displayAppNameInHeader) isAppIcon = false
                                             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                                         } else if (scope.enableRailDragging) {
-                                            val bubbleTarget = scope.bubbleTargetActivity
-                                            if (bubbleTarget != null) {
-                                                BubbleHelper.launch(context, bubbleTarget)
+                                            val overlayService = scope.overlayService
+                                            if (overlayService != null) {
+                                                OverlayHelper.launch(context, overlayService)
                                             } else {
                                                 // Long press in docked mode -> FAB
                                                 isFloating = true
@@ -289,19 +367,34 @@ fun AzNavRail(
                                     }
                                 )
                             }
-                            .pointerInput(isFloating, scope.enableRailDragging) {
+                            .pointerInput(isFloating, scope.enableRailDragging, scope.onRailDrag, overlayController) {
                                 detectDragGestures(
                                     onDragStart = { _ ->
-                                        if (isFloating) {
+                                        if (overlayController != null) {
+                                            overlayController.onDragStart()
+                                            if (isFloating) {
+                                                wasVisibleOnDragStart = showFloatingButtons
+                                                showFloatingButtons = false
+                                            }
+                                        } else if (isFloating) {
                                             wasVisibleOnDragStart = showFloatingButtons
                                             showFloatingButtons = false
                                         }
                                     },
                                     onDrag = { change, dragAmount ->
-                                        if (isFloating) {
+                                        if (overlayController != null) {
                                             change.consume()
-                                            if (onRailDrag != null) {
-                                                onRailDrag(dragAmount.x, dragAmount.y)
+                                            overlayController.onDrag(dragAmount)
+                                        } else if (scope.onOverlayDrag != null) {
+                                            change.consume()
+                                            scope.onOverlayDrag?.invoke(dragAmount.x, dragAmount.y)
+                                        } else if (isFloating) {
+                                            change.consume()
+
+                                            val onDrag = scope.onRailDrag
+                                            if (onDrag != null) {
+                                                onDrag(dragAmount.x, dragAmount.y)
+                                                // Do not update internal railOffset
                                             } else {
                                                 val newY = railOffset.y + dragAmount.y
                                                 val screenHeightPx =
@@ -317,8 +410,17 @@ fun AzNavRail(
                                         }
                                     },
                                     onDragEnd = {
-                                        if (isFloating) {
-                                            if (onRailDrag == null) {
+                                        if (overlayController != null) {
+                                            overlayController.onDragEnd()
+                                            // Always show buttons on drag end in overlay mode, as requested.
+                                            // This ensures the rail expands when dropped.
+                                            if (isFloating) {
+                                                showFloatingButtons = true
+                                            }
+                                        } else if (isFloating) {
+                                            if (scope.onRailDrag == null) {
+                                                // If dragging externally, we don't snap back to dock on release near origin
+                                                // because the origin of the Window is top-left of screen, not rail container.
                                                 val distance = kotlin.math.sqrt(
                                                     railOffset.x.toFloat()
                                                         .pow(2) + railOffset.y.toFloat().pow(2)
@@ -334,6 +436,7 @@ fun AzNavRail(
                                                     showFloatingButtons = true
                                                 }
                                             } else {
+                                                // External drag end
                                                 if (wasVisibleOnDragStart) {
                                                     showFloatingButtons = true
                                                 }
@@ -354,7 +457,7 @@ fun AzNavRail(
                                         AzHeaderIconShape.NONE -> baseModifier
                                     }
                                     Image(
-                                        bitmap = appIcon.toBitmap().asImageBitmap(),
+                                        painter = rememberAsyncImagePainter(model = appIcon),
                                         contentDescription = "Toggle menu, showing $appName icon",
                                         modifier = finalModifier
                                     )
@@ -487,7 +590,14 @@ fun AzNavRail(
                                         onToggle = { isExpanded = !isExpanded },
                                         onItemClick = { selectedItem = finalItem },
                                         onHostClick = {
-                                            hostStates[item.id] = !(hostStates[item.id] ?: false)
+                                            // Close other hosts
+                                            val wasExpanded = hostStates[item.id] ?: false
+                                            val keys = hostStates.keys.toList()
+                                            keys.forEach { key ->
+                                                hostStates[key] = false
+                                            }
+                                            // Toggle current (if it was expanded, it's now collapsed; if collapsed, now expanded)
+                                            hostStates[item.id] = !wasExpanded
                                         }
                                     )
 
@@ -518,21 +628,43 @@ fun AzNavRail(
                                 appName = appName,
                                 onToggle = { isExpanded = !isExpanded },
                                 onUndock = {
-                                    val bubbleTarget = scope.bubbleTargetActivity
+                                    val overlayService = scope.overlayService
                                     if (scope.onUndock != null) {
                                         scope.onUndock?.invoke()
-                                    } else if (bubbleTarget != null) {
-                                        BubbleHelper.launch(context, bubbleTarget)
+                                    } else if (overlayService != null) {
+                                        OverlayHelper.launch(context, overlayService)
                                     } else {
                                         isFloating = true
                                         isExpanded = false
                                         if (scope.displayAppNameInHeader) isAppIcon = true
                                     }
                                 },
-                                scope = scope
+                                scope = scope,
+                                footerColor = if (footerColor != Color.Unspecified) footerColor else MaterialTheme.colorScheme.primary
                             )
                         }
                     } else {
+                        // Prepare custom click handling for Overlay mode
+                        val handleOverlayClick: (AzNavItem) -> Unit = { item ->
+                            if (overlayController != null && item.route != null) {
+                                val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+                                if (launchIntent != null) {
+                                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    launchIntent.putExtra(AzNavRail.EXTRA_ROUTE, item.route)
+                                    context.startActivity(launchIntent)
+                                } else {
+                                    // Fallback if no launch intent
+                                    AzNavRailLogger.e("AzNavRail", "Could not find launch intent for package $packageName")
+                                }
+                            } else {
+                                // Standard behavior
+                                scope.onClickMap[item.id]?.invoke()
+                            }
+                        }
+
+                        // If in Overlay Mode, pass null for navController to intercept routing via onClick.
+                        val effectiveNavController = if (overlayController != null) null else navController
+
                         AnimatedVisibility(visible = !isFloating || showFloatingButtons) {
                             Column(
                                 modifier = Modifier
@@ -554,9 +686,9 @@ fun AzNavRail(
                                                         change.consume()
                                                     }
                                                 } else if (scope.enableRailDragging) { // Vertical swipe
-                                                    val bubbleTarget = scope.bubbleTargetActivity
-                                                    if (bubbleTarget != null) {
-                                                        BubbleHelper.launch(context, bubbleTarget)
+                                                    val overlayService = scope.overlayService
+                                                    if (overlayService != null) {
+                                                        OverlayHelper.launch(context, overlayService)
                                                     } else {
                                                         isFloating = true
                                                         isExpanded = false
@@ -625,13 +757,14 @@ fun AzNavRail(
                                     RailItems(
                                         items = scope.navItems,
                                         scope = scope,
-                                        navController = navController,
+                                        navController = effectiveNavController,
                                         currentDestination = currentDestination,
                                         buttonSize = buttonSize,
                                         onRailCyclerClick = onRailCyclerClick,
                                         onItemSelected = { navItem -> selectedItem = navItem },
                                         hostStates = hostStates,
-                                        packRailButtons = if (isFloating) true else scope.packRailButtons
+                                        packRailButtons = if (isFloating) true else scope.packRailButtons,
+                                        onClickOverride = if (overlayController != null) handleOverlayClick else null
                                     )
                                 }
                             }
