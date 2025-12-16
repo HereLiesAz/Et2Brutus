@@ -177,9 +177,8 @@ fun MainControllerUi(
 
     AzNavRail {
         azSettings(
-            enableRailDragging = true,
-            displayAppNameInHeader = false,
-            onRailDrag = onDrag
+            onRailDrag = onDrag,
+            onOverlayDrag = onDrag
         )
 
         azMenuItem(
