@@ -16,6 +16,7 @@ The application is written in Kotlin and uses the following technologies:
 -   **Dagger Hilt**: For dependency injection.
 -   **DataStore**: For persisting user settings and profiles.
 -   **Kotlinx Serialization**: For serializing and deserializing data.
+-   **AzNavRail**: The floating controller UI is built using the `AzNavRail` library (integrated locally in `com.hereliesaz.et2bruteforce.ui.aznavrail`).
 
 ## Development Conventions
 

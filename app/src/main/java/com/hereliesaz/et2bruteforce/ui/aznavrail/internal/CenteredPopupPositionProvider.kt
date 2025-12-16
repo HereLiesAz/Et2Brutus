@@ -13,9 +13,8 @@ object CenteredPopupPositionProvider : PopupPositionProvider {
         layoutDirection: LayoutDirection,
         popupContentSize: IntSize
     ): IntOffset {
-        return IntOffset(
-            (windowSize.width - popupContentSize.width) / 2,
-            (windowSize.height - popupContentSize.height) / 2
-        )
+        val x = (windowSize.width - popupContentSize.width) / 2
+        val y = (windowSize.height - popupContentSize.height) / 2
+        return IntOffset(x, y)
     }
 }

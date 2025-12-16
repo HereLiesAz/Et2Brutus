@@ -1,11 +1,15 @@
 package com.hereliesaz.et2bruteforce.ui.aznavrail.internal
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.navigation.NavController
 import com.hereliesaz.et2bruteforce.ui.aznavrail.AzNavRailScopeImpl
 import com.hereliesaz.et2bruteforce.ui.aznavrail.model.AzNavItem
-import com.hereliesaz.et2bruteforce.ui.aznavrail.AzNavRailButton
 
 @Composable
 internal fun RailItems(
@@ -16,24 +20,44 @@ internal fun RailItems(
     buttonSize: Dp,
     onRailCyclerClick: (AzNavItem) -> Unit,
     onItemSelected: (AzNavItem) -> Unit,
-    hostStates: Map<String, Boolean>,
-    packRailButtons: Boolean
+    hostStates: MutableMap<String, Boolean>,
+    packRailButtons: Boolean,
+    onClickOverride: ((AzNavItem) -> Unit)? = null
 ) {
-    items.filter { it.isRailItem && !it.isSubItem }.forEach { item ->
-        AzNavRailButton(
-            item = item,
-            isSelected = item.route == currentDestination,
-            onClick = {
-                if (item.isCycler) {
-                    onRailCyclerClick(item)
-                } else if (item.isHost) {
-                    // Host click logic
-                } else {
-                    scope.onClickMap[item.id]?.invoke()
-                    onItemSelected(item)
+    val topLevelItems = items.filter { !it.isSubItem }
+    val itemsToRender =
+        if (packRailButtons) topLevelItems.filter { it.isRailItem } else topLevelItems
+
+    itemsToRender.forEach { item ->
+        if (item.isRailItem) {
+            RailContent(
+                item = item,
+                navController = navController,
+                isSelected = item.route == currentDestination,
+                buttonSize = buttonSize,
+                onClick = if (onClickOverride != null) { { onClickOverride(item) } } else scope.onClickMap[item.id],
+                onRailCyclerClick = onRailCyclerClick,
+                onItemClick = { onItemSelected(item) },
+                onHostClick = { hostStates[item.id] = !(hostStates[item.id] ?: false) }
+            )
+            AnimatedVisibility(visible = item.isHost && (hostStates[item.id] ?: false)) {
+                Column {
+                    val subItems = scope.navItems.filter { it.hostId == item.id && it.isRailItem }
+                    subItems.forEach { subItem ->
+                        RailContent(
+                            item = subItem,
+                            navController = navController,
+                            isSelected = subItem.route == currentDestination,
+                            buttonSize = buttonSize,
+                            onClick = if (onClickOverride != null) { { onClickOverride(subItem) } } else scope.onClickMap[subItem.id],
+                            onRailCyclerClick = onRailCyclerClick,
+                            onItemClick = { onItemSelected(subItem) }
+                        )
+                    }
                 }
-            },
-            size = buttonSize
-        )
+            }
+        } else { // This branch is only taken when packRailButtons is false for non-rail items
+            Spacer(modifier = Modifier.height(AzNavRailDefaults.RailContentSpacerHeight))
+        }
     }
 }

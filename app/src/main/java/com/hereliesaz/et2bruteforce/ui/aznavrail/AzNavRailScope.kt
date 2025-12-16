@@ -15,6 +15,18 @@ import com.hereliesaz.et2bruteforce.ui.aznavrail.model.AzNavItem
 interface AzNavRailScope {
     /**
      * Configures the settings for the [AzNavRail].
+     * @param displayAppNameInHeader If true, displays the app name in the header instead of the app icon. Defaults to false.
+     * @param packRailButtons Whether to pack the rail buttons together at the top of the rail.
+     * @param expandedRailWidth The width of the rail when it is expanded.
+     * @param collapsedRailWidth The width of the rail when it is collapsed.
+     * @param showFooter Whether to show the footer.
+     * @param isLoading Whether to show the loading animation.
+     * @param defaultShape The default shape for the rail buttons.
+     * @param enableRailDragging Whether to enable the draggable rail (FAB mode).
+     * @param headerIconShape The shape of the header icon.
+     * @param onUndock An optional callback to override the default undock behavior.
+     * @param overlayService The service class to launch as a system overlay when undocked. If provided, overrides default undock behavior.
+     * @param onOverlayDrag A callback to handle drag events when in overlay mode.
      */
     fun azSettings(
         displayAppNameInHeader: Boolean = false,
@@ -27,48 +39,170 @@ interface AzNavRailScope {
         enableRailDragging: Boolean = false,
         headerIconShape: AzHeaderIconShape = AzHeaderIconShape.CIRCLE,
         onUndock: (() -> Unit)? = null,
-        bubbleMode: Boolean = false,
-        bubbleTargetActivity: Class<*>? = null
+        onRailDrag: ((Float, Float) -> Unit)? = null,
+        overlayService: Class<out android.app.Service>? = null,
+        onOverlayDrag: ((Float, Float) -> Unit)? = null
     )
 
+    /**
+     * Adds a menu item that only appears in the expanded menu.
+     * @param id The unique identifier for the item.
+     * @param text The text to display for the item.
+     * @param disabled Whether the item is disabled.
+     * @param onClick The callback to be invoked when the item is clicked.
+     * @param screenTitle The text to display as the screen title when this item is selected.
+     * @param route The route to navigate to when the item is clicked.
+     */
     fun azMenuItem(id: String, text: String, disabled: Boolean = false, screenTitle: String? = null, onClick: () -> Unit)
     fun azMenuItem(id: String, text: String, route: String, disabled: Boolean = false, screenTitle: String? = null)
     fun azMenuItem(id: String, text: String, route: String, disabled: Boolean = false, screenTitle: String? = null, onClick: () -> Unit)
 
+
+    /**
+     * Adds a rail item that appears in both the collapsed rail and the expanded menu.
+     * @param id The unique identifier for the item.
+     * @param text The text to display for the item.
+     * @param color The color of the item.
+     * @param shape The shape of the button.
+     * @param disabled Whether the item is disabled.
+     * @param onClick The callback to be invoked when the item is clicked.
+     * @param screenTitle The text to display as the screen title when this item is selected.
+     * @param route The route to navigate to when the item is clicked.
+     */
     fun azRailItem(id: String, text: String, color: Color? = null, shape: AzButtonShape? = null, disabled: Boolean = false, screenTitle: String? = null, onClick: () -> Unit)
     fun azRailItem(id: String, text: String, route: String, color: Color? = null, shape: AzButtonShape? = null, disabled: Boolean = false, screenTitle: String? = null)
     fun azRailItem(id: String, text: String, route: String, color: Color? = null, shape: AzButtonShape? = null, disabled: Boolean = false, screenTitle: String? = null, onClick: () -> Unit)
 
+    /**
+     * Adds a toggle item that only appears in the expanded menu. The text of the item changes to reflect the state.
+     * @param id The unique identifier for the item.
+     * @param isChecked Whether the toggle is in the "on" state.
+     * @param toggleOnText The text to display when the toggle is on.
+     * @param toggleOffText The text to display when the toggle is off.
+     * @param disabled Whether the item is disabled.
+     * @param onClick The callback to be invoked when the item is clicked.
+     * @param route The route to navigate to when the item is clicked.
+     */
     fun azMenuToggle(id: String, isChecked: Boolean, toggleOnText: String, toggleOffText: String, disabled: Boolean = false, screenTitle: String? = null, onClick: () -> Unit)
     fun azMenuToggle(id: String, isChecked: Boolean, toggleOnText: String, toggleOffText: String, route: String, disabled: Boolean = false, screenTitle: String? = null, onClick: () -> Unit)
     fun azMenuToggle(id: String, isChecked: Boolean, toggleOnText: String, toggleOffText: String, route: String, disabled: Boolean = false, screenTitle: String? = null)
 
+    /**
+     * Adds a toggle item that appears in both the collapsed rail and the expanded menu. The text of the item changes to reflect the state.
+     * @param id The unique identifier for the item.
+     * @param color The color of the item.
+     * @param isChecked Whether the toggle is in the "on" state.
+     * @param toggleOnText The text to display when the toggle is on.
+     * @param toggleOffText The text to display when the toggle is off.
+     * @param shape The shape of the button.
+     * @param disabled Whether the item is disabled.
+     * @param onClick The callback to be invoked when the item is clicked.
+     * @param route The route to navigate to when the item is clicked.
+     */
     fun azRailToggle(id: String, color: Color? = null, isChecked: Boolean, toggleOnText: String, toggleOffText: String, shape: AzButtonShape? = null, disabled: Boolean = false, screenTitle: String? = null, onClick: () -> Unit)
     fun azRailToggle(id: String, color: Color? = null, isChecked: Boolean, toggleOnText: String, toggleOffText: String, shape: AzButtonShape? = null, route: String, disabled: Boolean = false, screenTitle: String? = null, onClick: () -> Unit)
     fun azRailToggle(id: String, color: Color? = null, isChecked: Boolean, toggleOnText: String, toggleOffText: String, shape: AzButtonShape? = null, route: String, disabled: Boolean = false, screenTitle: String? = null)
 
+    /**
+     * Adds a cycler item that only appears in the expanded menu.
+     *
+     * A cycler item cycles through a list of options when clicked. The displayed option is updated
+     * immediately, but the `onClick` action is delayed by one second. Each click resets the timer.
+     * The action for the final selected option is triggered after the delay, and the menu collapses.
+     *
+     * @param id The unique identifier for the item.
+     * @param options The list of options to cycle through.
+     * @param selectedOption The currently selected option.
+     * @param disabled Whether the item is disabled.
+     * @param disabledOptions The list of options to disable.
+     * @param onClick The callback to be invoked for the final selected option after the delay.
+     * @param route The route to navigate to when the item is clicked.
+     */
     fun azMenuCycler(id: String, options: List<String>, selectedOption: String, disabled: Boolean = false, disabledOptions: List<String>? = null, screenTitle: String? = null, onClick: () -> Unit)
     fun azMenuCycler(id: String, options: List<String>, selectedOption: String, route: String, disabled: Boolean = false, disabledOptions: List<String>? = null, screenTitle: String? = null, onClick: () -> Unit)
     fun azMenuCycler(id: String, options: List<String>, selectedOption: String, route: String, disabled: Boolean = false, disabledOptions: List<String>? = null, screenTitle: String? = null)
 
+    /**
+     * Adds a cycler item that appears in both the collapsed rail and the expanded menu.
+     *
+     * A cycler item cycles through a list of options when clicked. The displayed option is updated
+     * immediately, but the `onClick` action is delayed by one second. Each click resets the timer.
+     * The action for the final selected option is triggered after the delay, and the menu collapses.
+     *
+     * @param id The unique identifier for the item.
+     * @param color The color of the item.
+     * @param options The list of options to cycle through.
+     * @param selectedOption The currently selected option.
+     * @param shape The shape of the button.
+     * @param disabled Whether the item is disabled.
+     * @param disabledOptions The list of options to disable.
+     * @param onClick The callback to be invoked for the final selected option after the delay.
+     * @param route The route to navigate to when the item is clicked.
+     */
     fun azRailCycler(id: String, color: Color? = null, options: List<String>, selectedOption: String, shape: AzButtonShape? = null, disabled: Boolean = false, disabledOptions: List<String>? = null, screenTitle: String? = null, onClick: () -> Unit)
     fun azRailCycler(id: String, color: Color? = null, options: List<String>, selectedOption: String, shape: AzButtonShape? = null, route: String, disabled: Boolean = false, disabledOptions: List<String>? = null, screenTitle: String? = null, onClick: () -> Unit)
     fun azRailCycler(id: String, color: Color? = null, options: List<String>, selectedOption: String, shape: AzButtonShape? = null, route: String, disabled: Boolean = false, disabledOptions: List<String>? = null, screenTitle: String? = null)
 
+    /**
+     * Adds a divider to the expanded menu.
+     */
     fun azDivider()
 
+    /**
+     * Adds a host item that only appears in the expanded menu.
+     * @param id The unique identifier for the item.
+     * @param text The text to display for the item.
+     * @param disabled Whether the item is disabled.
+     * @param onClick The callback to be invoked when the item is clicked.
+     * @param screenTitle The text to display as the screen title when this item is selected.
+     * @param route The route to navigate to when the item is clicked.
+     */
     fun azMenuHostItem(id: String, text: String, disabled: Boolean = false, screenTitle: String? = null, onClick: () -> Unit)
     fun azMenuHostItem(id: String, text: String, route: String, disabled: Boolean = false, screenTitle: String? = null)
     fun azMenuHostItem(id: String, text: String, route: String, disabled: Boolean = false, screenTitle: String? = null, onClick: () -> Unit)
 
+
+    /**
+     * Adds a host item that appears in both the collapsed rail and the expanded menu.
+     * @param id The unique identifier for the item.
+     * @param text The text to display for the item.
+     * @param color The color of the item.
+     * @param shape The shape of the button.
+     * @param disabled Whether the item is disabled.
+     * @param onClick The callback to be invoked when the item is clicked.
+     * @param screenTitle The text to display as the screen title when this item is selected.
+     * @param route The route to navigate to when the item is clicked.
+     */
     fun azRailHostItem(id: String, text: String, color: Color? = null, shape: AzButtonShape? = null, disabled: Boolean = false, screenTitle: String? = null, onClick: () -> Unit)
     fun azRailHostItem(id: String, text: String, route: String, color: Color? = null, shape: AzButtonShape? = null, disabled: Boolean = false, screenTitle: String? = null)
     fun azRailHostItem(id: String, text: String, route: String, color: Color? = null, shape: AzButtonShape? = null, disabled: Boolean = false, screenTitle: String? = null, onClick: () -> Unit)
 
+
+    /**
+     * Adds a sub item that only appears in the expanded menu.
+     * @param id The unique identifier for the item.
+     * @param hostId The unique identifier of the host item.
+     * @param text The text to display for the item.
+     * @param disabled Whether the item is disabled.
+     * @param onClick The callback to be invoked when the item is clicked.
+     * @param screenTitle The text to display as the screen title when this item is selected.
+     * @param route The route to navigate to when the item is clicked.
+     */
     fun azMenuSubItem(id: String, hostId: String, text: String, disabled: Boolean = false, screenTitle: String? = null, onClick: () -> Unit)
     fun azMenuSubItem(id: String, hostId: String, text: String, route: String, disabled: Boolean = false, screenTitle: String? = null)
     fun azMenuSubItem(id: String, hostId: String, text: String, route: String, disabled: Boolean = false, screenTitle: String? = null, onClick: () -> Unit)
 
+
+    /**
+     * Adds a sub item that appears in both the collapsed rail and the expanded menu.
+     * @param id The unique identifier for the item.
+     * @param hostId The unique identifier of the host item.
+     * @param text The text to display for the item.
+     * @param disabled Whether the item is disabled.
+     * @param onClick The callback to be invoked when the item is clicked.
+     * @param screenTitle The text to display as the screen title when this item is selected.
+     * @param route The route to navigate to when the item is clicked.
+     */
     fun azRailSubItem(id: String, hostId: String, text: String, disabled: Boolean = false, screenTitle: String? = null, onClick: () -> Unit)
     fun azRailSubItem(id: String, hostId: String, text: String, route: String, disabled: Boolean = false, screenTitle: String? = null)
     fun azRailSubItem(id: String, hostId: String, text: String, route: String, disabled: Boolean = false, screenTitle: String? = null, onClick: () -> Unit)
@@ -104,8 +238,9 @@ internal class AzNavRailScopeImpl : AzNavRailScope {
     var enableRailDragging: Boolean = false
     var headerIconShape: AzHeaderIconShape = AzHeaderIconShape.CIRCLE
     var onUndock: (() -> Unit)? = null
-    var bubbleMode: Boolean = false
-    var bubbleTargetActivity: Class<*>? = null
+    var onRailDrag: ((Float, Float) -> Unit)? = null
+    var overlayService: Class<out android.app.Service>? = null
+    var onOverlayDrag: ((Float, Float) -> Unit)? = null
 
     override fun azSettings(
         displayAppNameInHeader: Boolean,
@@ -118,11 +253,20 @@ internal class AzNavRailScopeImpl : AzNavRailScope {
         enableRailDragging: Boolean,
         headerIconShape: AzHeaderIconShape,
         onUndock: (() -> Unit)?,
-        bubbleMode: Boolean,
-        bubbleTargetActivity: Class<*>?
+        onRailDrag: ((Float, Float) -> Unit)?,
+        overlayService: Class<out android.app.Service>?,
+        onOverlayDrag: ((Float, Float) -> Unit)?
     ) {
         require(expandedRailWidth > collapsedRailWidth) {
-            "expandedRailWidth must be greater than collapsedRailWidth"
+            """
+            `expandedRailWidth` must be greater than `collapsedRailWidth`.
+
+            // azSettings sample
+            azSettings(
+                expandedRailWidth = 260.dp,
+                collapsedRailWidth = 80.dp
+            )
+            """.trimIndent()
         }
         this.displayAppNameInHeader = displayAppNameInHeader
         this.packRailButtons = packRailButtons
@@ -131,11 +275,11 @@ internal class AzNavRailScopeImpl : AzNavRailScope {
         this.showFooter = showFooter
         this.isLoading = isLoading
         this.defaultShape = defaultShape
-        this.enableRailDragging = if (bubbleMode) false else (enableRailDragging || bubbleTargetActivity != null)
+        this.enableRailDragging = enableRailDragging || overlayService != null || onOverlayDrag != null
         this.headerIconShape = headerIconShape
         this.onUndock = onUndock
-        this.bubbleMode = bubbleMode
-        this.bubbleTargetActivity = bubbleTargetActivity
+        this.overlayService = overlayService
+        this.onOverlayDrag = onOverlayDrag
     }
 
     override fun azMenuItem(id: String, text: String, disabled: Boolean, screenTitle: String?, onClick: () -> Unit) {
@@ -340,6 +484,38 @@ internal class AzNavRailScopeImpl : AzNavRailScope {
         addItem(id = id, text = text, route = route, screenTitle = screenTitle, isRailItem = true, disabled = disabled, isSubItem = true, hostId = hostId, shape = AzButtonShape.NONE, onClick = onClick)
     }
 
+    override fun azMenuSubToggle(id: String, hostId: String, isChecked: Boolean, toggleOnText: String, toggleOffText: String, disabled: Boolean, screenTitle: String?, onClick: () -> Unit) {
+        addMenuSubToggle(id, hostId, isChecked, toggleOnText, toggleOffText, null, disabled, screenTitle, onClick)
+    }
+
+    override fun azMenuSubToggle(id: String, hostId: String, isChecked: Boolean, toggleOnText: String, toggleOffText: String, route: String, disabled: Boolean, screenTitle: String?, onClick: () -> Unit) {
+        addMenuSubToggle(id, hostId, isChecked, toggleOnText, toggleOffText, route, disabled, screenTitle, onClick)
+    }
+
+    override fun azMenuSubToggle(id: String, hostId: String, isChecked: Boolean, toggleOnText: String, toggleOffText: String, route: String, disabled: Boolean, screenTitle: String?) {
+        addMenuSubToggle(id, hostId, isChecked, toggleOnText, toggleOffText, route, disabled, screenTitle) {}
+    }
+
+    private fun addMenuSubToggle(id: String, hostId: String, isChecked: Boolean, toggleOnText: String, toggleOffText: String, route: String?, disabled: Boolean, screenTitle: String?, onClick: () -> Unit) {
+        addToggle(id = id, hostId = hostId, isChecked = isChecked, toggleOnText = toggleOnText, toggleOffText = toggleOffText, route = route, disabled = disabled, screenTitle = screenTitle, isRailItem = false, isSubItem = true, shape = AzButtonShape.NONE, onClick = onClick)
+    }
+
+    override fun azRailSubToggle(id: String, hostId: String, color: Color?, isChecked: Boolean, toggleOnText: String, toggleOffText: String, shape: AzButtonShape?, disabled: Boolean, screenTitle: String?, onClick: () -> Unit) {
+        addRailSubToggle(id, hostId, color, isChecked, toggleOnText, toggleOffText, shape, null, disabled, screenTitle, onClick)
+    }
+
+    override fun azRailSubToggle(id: String, hostId: String, color: Color?, isChecked: Boolean, toggleOnText: String, toggleOffText: String, shape: AzButtonShape?, route: String, disabled: Boolean, screenTitle: String?, onClick: () -> Unit) {
+        addRailSubToggle(id, hostId, color, isChecked, toggleOnText, toggleOffText, shape, route, disabled, screenTitle, onClick)
+    }
+
+    override fun azRailSubToggle(id: String, hostId: String, color: Color?, isChecked: Boolean, toggleOnText: String, toggleOffText: String, shape: AzButtonShape?, route: String, disabled: Boolean, screenTitle: String?) {
+        addRailSubToggle(id, hostId, color, isChecked, toggleOnText, toggleOffText, shape, route, disabled, screenTitle) {}
+    }
+
+    private fun addRailSubToggle(id: String, hostId: String, color: Color?, isChecked: Boolean, toggleOnText: String, toggleOffText: String, shape: AzButtonShape?, route: String?, disabled: Boolean, screenTitle: String?, onClick: () -> Unit) {
+        addToggle(id = id, hostId = hostId, color = color, isChecked = isChecked, toggleOnText = toggleOnText, toggleOffText = toggleOffText, route = route, disabled = disabled, screenTitle = screenTitle, isRailItem = true, isSubItem = true, shape = shape, onClick = onClick)
+    }
+
     override fun azMenuSubCycler(id: String, hostId: String, options: List<String>, selectedOption: String, disabled: Boolean, disabledOptions: List<String>?, screenTitle: String?, onClick: () -> Unit) {
         addMenuSubCycler(id, hostId, options, selectedOption, null, disabled, disabledOptions, screenTitle, onClick)
     }
@@ -388,7 +564,9 @@ internal class AzNavRailScopeImpl : AzNavRailScope {
         onClick: () -> Unit
     ) {
         require(selectedOption in options) {
-            "selectedOption must be one of the provided options."
+            """
+            `selectedOption` must be one of the provided options.
+            """.trimIndent()
         }
         val finalScreenTitle = if (screenTitle == AzNavRail.noTitle) null else screenTitle ?: selectedOption
         onClickMap[id] = onClick
@@ -412,38 +590,6 @@ internal class AzNavRailScopeImpl : AzNavRailScope {
         )
     }
 
-    override fun azMenuSubToggle(id: String, hostId: String, isChecked: Boolean, toggleOnText: String, toggleOffText: String, disabled: Boolean, screenTitle: String?, onClick: () -> Unit) {
-        addMenuSubToggle(id, hostId, isChecked, toggleOnText, toggleOffText, null, disabled, screenTitle, onClick)
-    }
-
-    override fun azMenuSubToggle(id: String, hostId: String, isChecked: Boolean, toggleOnText: String, toggleOffText: String, route: String, disabled: Boolean, screenTitle: String?, onClick: () -> Unit) {
-        addMenuSubToggle(id, hostId, isChecked, toggleOnText, toggleOffText, route, disabled, screenTitle, onClick)
-    }
-
-    override fun azMenuSubToggle(id: String, hostId: String, isChecked: Boolean, toggleOnText: String, toggleOffText: String, route: String, disabled: Boolean, screenTitle: String?) {
-        addMenuSubToggle(id, hostId, isChecked, toggleOnText, toggleOffText, route, disabled, screenTitle) {}
-    }
-
-    private fun addMenuSubToggle(id: String, hostId: String, isChecked: Boolean, toggleOnText: String, toggleOffText: String, route: String?, disabled: Boolean, screenTitle: String?, onClick: () -> Unit) {
-        addToggle(id = id, hostId = hostId, isChecked = isChecked, toggleOnText = toggleOnText, toggleOffText = toggleOffText, route = route, disabled = disabled, screenTitle = screenTitle, isRailItem = false, isSubItem = true, shape = AzButtonShape.NONE, onClick = onClick)
-    }
-
-    override fun azRailSubToggle(id: String, hostId: String, color: Color?, isChecked: Boolean, toggleOnText: String, toggleOffText: String, shape: AzButtonShape?, disabled: Boolean, screenTitle: String?, onClick: () -> Unit) {
-        addRailSubToggle(id, hostId, color, isChecked, toggleOnText, toggleOffText, shape, null, disabled, screenTitle, onClick)
-    }
-
-    override fun azRailSubToggle(id: String, hostId: String, color: Color?, isChecked: Boolean, toggleOnText: String, toggleOffText: String, shape: AzButtonShape?, route: String, disabled: Boolean, screenTitle: String?, onClick: () -> Unit) {
-        addRailSubToggle(id, hostId, color, isChecked, toggleOnText, toggleOffText, shape, route, disabled, screenTitle, onClick)
-    }
-
-    override fun azRailSubToggle(id: String, hostId: String, color: Color?, isChecked: Boolean, toggleOnText: String, toggleOffText: String, shape: AzButtonShape?, route: String, disabled: Boolean, screenTitle: String?) {
-        addRailSubToggle(id, hostId, color, isChecked, toggleOnText, toggleOffText, shape, route, disabled, screenTitle) {}
-    }
-
-    private fun addRailSubToggle(id: String, hostId: String, color: Color?, isChecked: Boolean, toggleOnText: String, toggleOffText: String, shape: AzButtonShape?, route: String?, disabled: Boolean, screenTitle: String?, onClick: () -> Unit) {
-        addToggle(id = id, hostId = hostId, color = color, isChecked = isChecked, toggleOnText = toggleOnText, toggleOffText = toggleOffText, route = route, disabled = disabled, screenTitle = screenTitle, isRailItem = true, isSubItem = true, shape = shape, onClick = onClick)
-    }
-
     private fun addToggle(
         id: String,
         hostId: String? = null,
@@ -460,7 +606,9 @@ internal class AzNavRailScopeImpl : AzNavRailScope {
         onClick: () -> Unit
     ) {
         require(toggleOnText.isNotEmpty() && toggleOffText.isNotEmpty()) {
-            "toggleOnText and toggleOffText must not be empty."
+            """
+            `toggleOnText` and `toggleOffText` must not be empty.
+            """.trimIndent()
         }
         val text = if (isChecked) toggleOnText else toggleOffText
         val finalScreenTitle = if (screenTitle == AzNavRail.noTitle) null else screenTitle ?: text
@@ -500,7 +648,9 @@ internal class AzNavRailScopeImpl : AzNavRailScope {
         onClick: () -> Unit
     ) {
         require(text.isNotEmpty()) {
-            "text must not be empty for item with id $id."
+            """
+            `text` must not be empty for item with id `$id`.
+            """.trimIndent()
         }
         val finalScreenTitle = if (screenTitle == AzNavRail.noTitle) null else screenTitle ?: text
         onClickMap[id] = onClick

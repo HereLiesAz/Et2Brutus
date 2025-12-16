@@ -1,33 +1,126 @@
 package com.hereliesaz.et2bruteforce.ui.aznavrail.internal
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
+import com.hereliesaz.et2bruteforce.ui.aznavrail.AzDivider
 import com.hereliesaz.et2bruteforce.ui.aznavrail.AzNavRailScopeImpl
+import com.hereliesaz.et2bruteforce.ui.aznavrail.model.AzNavItem
 
+/**
+ * Composable for displaying the footer in the expanded menu.
+ *
+ * @param appName The name of the app.
+ * @param onToggle The click handler for toggling the rail's expanded
+ *    state.
+ */
 @Composable
 internal fun Footer(
     appName: String,
     onToggle: () -> Unit,
     onUndock: () -> Unit,
-    scope: AzNavRailScopeImpl
+    scope: AzNavRailScopeImpl,
+    footerColor: Color
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        if (scope.enableRailDragging) {
-             Button(onClick = onUndock) {
-                 Text("Undock")
-             }
+    val context = LocalContext.current
+    val onAboutClick: () -> Unit = remember(context, appName) {
+        {
+            try {
+                val intent = Intent(
+                    Intent.ACTION_VIEW,
+                    "https://github.com/HereLiesAz/$appName".toUri()
+                )
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+            } catch (e: ActivityNotFoundException) {
+                AzNavRailLogger.e("AzNavRail.Footer", "Could not open 'About' link.", e)
+            }
         }
+    }
+    val onFeedbackClick: () -> Unit = remember(context, appName) {
+        {
+            try {
+                val intent = Intent(Intent.ACTION_SENDTO).apply {
+                    data = "mailto:".toUri()
+                    putExtra(Intent.EXTRA_EMAIL, arrayOf("hereliesaz@gmail.com"))
+                    putExtra(Intent.EXTRA_SUBJECT, "Feedback for $appName")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                val chooser = Intent.createChooser(intent, "Send Feedback")
+                chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(chooser)
+            } catch (e: ActivityNotFoundException) {
+                AzNavRailLogger.e("AzNavRail.Footer", "Could not open 'Feedback' link.", e)
+            }
+        }
+    }
+    val onCreditClick: () -> Unit = remember(context) {
+        {
+            try {
+                val intent = Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("https://www.instagram.com/hereliesaz")
+                )
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+            } catch (e: ActivityNotFoundException) {
+                AzNavRailLogger.e("AzNavRail.Footer", "Could not open 'Credit' link.", e)
+            }
+        }
+    }
+
+    Column {
+        AzDivider()
+        if (scope.enableRailDragging) {
+            MenuItem(
+                item = AzNavItem(id = "undock", text = "Undock", isRailItem = false, color = footerColor),
+                navController = null,
+                isSelected = false,
+                onClick = onUndock,
+                onCyclerClick = null,
+                onToggle = {}, // This is the fix: prevent onToggle from being called
+                onItemClick = {}
+            )
+        }
+        MenuItem(
+            item = AzNavItem(id = "about", text = "About", isRailItem = false, color = footerColor),
+            navController = null,
+            isSelected = false,
+            onClick = onAboutClick,
+            onCyclerClick = null,
+            onToggle = onToggle,
+            onItemClick = {})
+        MenuItem(
+            item = AzNavItem(id = "feedback", text = "Feedback", isRailItem = false, color = footerColor),
+            navController = null,
+            isSelected = false,
+            onClick = onFeedbackClick,
+            onCyclerClick = null,
+            onToggle = onToggle,
+            onItemClick = {})
+        MenuItem(
+            item = AzNavItem(
+                id = "credit",
+                text = "@HereLiesAz",
+                isRailItem = false,
+                color = footerColor
+            ),
+            navController = null,
+            isSelected = false,
+            onClick = onCreditClick,
+            onCyclerClick = null,
+            onToggle = onToggle,
+            onItemClick = {}
+        )
+        Spacer(modifier = Modifier.height(AzNavRailDefaults.FooterSpacerHeight))
     }
 }

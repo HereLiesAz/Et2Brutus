@@ -22,7 +22,6 @@ import kotlinx.parcelize.RawValue
  * @param selectedOption The currently selected option for a cycler.
  * @param isDivider If `true`, this item is a divider.
  * @param collapseOnClick If `true`, the navigation rail will collapse after this item is clicked. This only applies to normal items (not toggles or cyclers).
- * @param onClick The lambda to be executed when the item is clicked. For toggles and cyclers, this is where you should update your state.
  */
 @Parcelize
 data class AzNavItem(

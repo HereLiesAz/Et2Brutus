@@ -1,44 +1,134 @@
 package com.hereliesaz.et2bruteforce.ui.aznavrail
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import android.annotation.SuppressLint
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.sp
-import com.hereliesaz.et2bruteforce.ui.aznavrail.model.AzNavItem
+import androidx.compose.ui.unit.dp
+import com.hereliesaz.et2bruteforce.ui.aznavrail.model.AzButtonShape
+import com.hereliesaz.et2bruteforce.ui.aznavrail.util.text.AutoSizeText
 
+/**
+ * A circular, text-only button with auto-sizing text, designed for the
+ * collapsed navigation rail.
+ *
+ * @param onClick A lambda to be executed when the button is clicked.
+ * @param text The text to display on the button.
+ * @param modifier The modifier to be applied to the button.
+ * @param size The diameter of the circular button.
+ * @param color The color of the button's border and text.
+ * @param colors The colors of the button, overriding `color` if provided.
+ * @param shape The shape of the button.
+ * @param enabled Whether the button is enabled.
+ * @param isSelected Whether the button is selected.
+ * @param isLoading Whether the button is in a loading state.
+ * @param contentPadding The padding to be applied to the button's content.
+ * @param content Optional content to be displayed alongside the text.
+ */
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun AzNavRailButton(
-    item: AzNavItem,
-    isSelected: Boolean,
     onClick: () -> Unit,
-    size: Dp
+    text: String,
+    modifier: Modifier = Modifier,
+    size: Dp = 72.dp,
+    color: Color = MaterialTheme.colorScheme.primary,
+    colors: ButtonColors? = null,
+    shape: AzButtonShape = AzButtonShape.CIRCLE,
+    enabled: Boolean = true,
+    isSelected: Boolean = false,
+    isLoading: Boolean = false,
+    contentPadding: PaddingValues = PaddingValues(8.dp),
+    content: @Composable () -> Unit = {}
 ) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
+    val buttonShape = when (shape) {
+        AzButtonShape.CIRCLE -> CircleShape
+        AzButtonShape.SQUARE -> RoundedCornerShape(0.dp)
+        AzButtonShape.RECTANGLE -> RoundedCornerShape(0.dp)
+        AzButtonShape.NONE -> RoundedCornerShape(0.dp)
+    }
+
+    val buttonModifier = when (shape) {
+        AzButtonShape.CIRCLE -> modifier
             .size(size)
-            .clip(CircleShape)
-            .background(item.color ?: if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
-            .clickable(onClick = onClick)
+            .aspectRatio(1f)
+        AzButtonShape.SQUARE -> modifier
+            .size(size)
+            .aspectRatio(1f)
+        AzButtonShape.RECTANGLE, AzButtonShape.NONE -> modifier.height(36.dp)
+    }
+
+    val disabledColor = color.copy(alpha = 0.5f)
+    val finalColor = if (isSelected) MaterialTheme.colorScheme.primary else color
+    val defaultColors = ButtonDefaults.outlinedButtonColors(
+        containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface,
+        contentColor = if (!enabled) disabledColor else finalColor,
+        disabledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+        disabledContentColor = disabledColor
+    )
+
+    OutlinedButton(
+        onClick = onClick,
+        modifier = buttonModifier,
+        shape = buttonShape,
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp),
+        border = if (shape == AzButtonShape.NONE) BorderStroke(0.dp, Color.Transparent) else BorderStroke(3.dp, if (!enabled) disabledColor else finalColor),
+        colors = colors ?: defaultColors,
+        contentPadding = contentPadding,
+        enabled = enabled
     ) {
-        Text(
-            text = if (item.isToggle) (if (item.isChecked == true) "ON" else "OFF")
-                   else if (item.isCycler) (item.selectedOption?.take(1) ?: "?")
-                   else item.text.take(2),
-            color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            fontSize = 12.sp
-        )
+        Box(contentAlignment = Alignment.Center) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.alpha(if (isLoading) 0f else 1f)
+            ) {
+                val textModifier = when (shape) {
+                    AzButtonShape.RECTANGLE, AzButtonShape.NONE -> Modifier
+                    AzButtonShape.CIRCLE, AzButtonShape.SQUARE -> Modifier.weight(1f)
+                }
+
+                AutoSizeText(
+                    text = text,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        textAlign = TextAlign.Center,
+                        color = if (!enabled) disabledColor else finalColor
+                    ),
+                    modifier = textModifier,
+                    maxLines = if (text.contains("\n")) Int.MAX_VALUE else 1,
+                    softWrap = false,
+                    alignment = Alignment.Center,
+                    lineSpaceRatio = 0.9f
+                )
+                content()
+            }
+
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .wrapContentSize(align = Alignment.Center, unbounded = true)
+                ) {
+                    AzLoad()
+                }
+            }
+        }
     }
 }
