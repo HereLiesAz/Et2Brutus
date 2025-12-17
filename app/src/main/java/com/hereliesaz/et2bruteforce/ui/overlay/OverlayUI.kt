@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -176,10 +177,13 @@ fun MainControllerUi(
     var showProfileDialog by rememberSaveable { mutableStateOf(false) }
     val status = uiState.status
 
+    val railDrag = remember(onDrag) { { x: Float, y: Float -> onDrag(x, y) } }
+    val overlayDrag = remember(onDrag) { { x: Float, y: Float -> onDrag(x, y) } }
+
     AzNavRail {
         azSettings(
-            onRailDrag = onDrag,
-            onOverlayDrag = onDrag
+            onRailDrag = railDrag,
+            onOverlayDrag = overlayDrag
         )
 
         azRailItem(
@@ -277,8 +281,9 @@ fun ConfigButtonUi(
         AzButton(
             onClick = { /* Drag only */ },
             text = text,
-            color = nodeType.getColor(),
+            color = if (isIdentified) nodeType.getColor() else MaterialTheme.colorScheme.secondaryContainer,
             modifier = Modifier
+                .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
                 .onGloballyPositioned { coordinates ->
                     fabCoordinates = coordinates
                 }
