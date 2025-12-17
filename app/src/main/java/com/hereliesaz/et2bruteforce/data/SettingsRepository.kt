@@ -37,6 +37,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
         val CONTROLLER_POSITION_X = intPreferencesKey("controller_position_x")
         val CONTROLLER_POSITION_Y = intPreferencesKey("controller_position_y")
         val WALKTHROUGH_COMPLETED = booleanPreferencesKey("walkthrough_completed")
+        val HYBRID_MODE_ENABLED = booleanPreferencesKey("hybrid_mode_enabled")
         val HYBRID_SUFFIXES = stringSetPreferencesKey("hybrid_suffixes")
     }
 
@@ -54,7 +55,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
                 captchaKeywords = preferences[PreferencesKeys.CAPTCHA_KEYWORDS]?.toList() ?: listOf("captcha", "verify you", "robot"),
                 controllerPosition = Point(preferences[PreferencesKeys.CONTROLLER_POSITION_X] ?: 100, preferences[PreferencesKeys.CONTROLLER_POSITION_Y] ?: 300),
                 walkthroughCompleted = preferences[PreferencesKeys.WALKTHROUGH_COMPLETED] ?: false,
-                hybridSuffixes = preferences[PreferencesKeys.HYBRID_SUFFIXES]?.toList() ?: emptyList()
+                hybridModeEnabled = preferences[PreferencesKeys.HYBRID_MODE_ENABLED] ?: false,
+                hybridSuffixes = preferences[PreferencesKeys.HYBRID_SUFFIXES]?.toList() ?: listOf("!", "123", "?")
             )
         }
 
@@ -134,6 +136,12 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
     suspend fun updateWalkthroughCompleted(completed: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.WALKTHROUGH_COMPLETED] = completed
+        }
+    }
+
+    suspend fun updateHybridModeEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.HYBRID_MODE_ENABLED] = enabled
         }
     }
 
