@@ -221,7 +221,9 @@ class BruteforceViewModel @Inject constructor(
     }
 
     fun updateHybridSuffixes(suffixes: List<String>) {
-        // TODO: Implement hybrid suffixes update
+        viewModelScope.launch {
+            settingsRepository.updateHybridSuffixes(suffixes)
+        }
     }
 
     // --- New Action Request Methods ---

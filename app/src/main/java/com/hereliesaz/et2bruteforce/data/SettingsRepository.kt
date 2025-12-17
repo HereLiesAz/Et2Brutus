@@ -37,6 +37,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
         val CONTROLLER_POSITION_X = intPreferencesKey("controller_position_x")
         val CONTROLLER_POSITION_Y = intPreferencesKey("controller_position_y")
         val WALKTHROUGH_COMPLETED = booleanPreferencesKey("walkthrough_completed")
+        val HYBRID_SUFFIXES = stringSetPreferencesKey("hybrid_suffixes")
     }
 
     val settingsFlow: Flow<BruteforceSettings> = context.dataStore.data
@@ -52,7 +53,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
                 successKeywords = preferences[PreferencesKeys.SUCCESS_KEYWORDS]?.toList() ?: listOf("success", "welcome", "logged in"),
                 captchaKeywords = preferences[PreferencesKeys.CAPTCHA_KEYWORDS]?.toList() ?: listOf("captcha", "verify you", "robot"),
                 controllerPosition = Point(preferences[PreferencesKeys.CONTROLLER_POSITION_X] ?: 100, preferences[PreferencesKeys.CONTROLLER_POSITION_Y] ?: 300),
-                walkthroughCompleted = preferences[PreferencesKeys.WALKTHROUGH_COMPLETED] ?: false
+                walkthroughCompleted = preferences[PreferencesKeys.WALKTHROUGH_COMPLETED] ?: false,
+                hybridSuffixes = preferences[PreferencesKeys.HYBRID_SUFFIXES]?.toList() ?: emptyList()
             )
         }
 
@@ -132,6 +134,12 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
     suspend fun updateWalkthroughCompleted(completed: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.WALKTHROUGH_COMPLETED] = completed
+        }
+    }
+
+    suspend fun updateHybridSuffixes(suffixes: List<String>) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.HYBRID_SUFFIXES] = suffixes.toSet()
         }
     }
 
