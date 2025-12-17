@@ -367,7 +367,13 @@ fun AzNavRail(
                                     }
                                 )
                             }
-                            .pointerInput(isFloating, scope.enableRailDragging, scope.onRailDrag, overlayController) {
+                            .pointerInput(
+                                isFloating,
+                                scope.enableRailDragging,
+                                scope.onRailDrag,
+                                scope.onOverlayDrag,
+                                overlayController
+                            ) {
                                 detectDragGestures(
                                     onDragStart = { _ ->
                                         if (overlayController != null) {
