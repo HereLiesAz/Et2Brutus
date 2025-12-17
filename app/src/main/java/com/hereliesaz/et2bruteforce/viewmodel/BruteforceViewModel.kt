@@ -217,11 +217,19 @@ class BruteforceViewModel @Inject constructor(
     }
 
     fun updateHybridModeEnabled(enabled: Boolean) {
-        // TODO: Implement hybrid mode toggle
+        viewModelScope.launch {
+            settingsRepository.updateHybridModeEnabled(enabled)
+            settingsRepository.updateLastAttempt(null)
+            _uiState.update { it.copy(attemptCount = 0) }
+        }
     }
 
     fun updateHybridSuffixes(suffixes: List<String>) {
-        // TODO: Implement hybrid suffixes update
+        viewModelScope.launch {
+            settingsRepository.updateHybridSuffixes(suffixes)
+            settingsRepository.updateLastAttempt(null)
+            _uiState.update { it.copy(attemptCount = 0) }
+        }
     }
 
     // --- New Action Request Methods ---
