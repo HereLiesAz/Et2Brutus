@@ -47,6 +47,7 @@ fun AzButton(
 ) {
     AzNavRailButton(
         onClick = onClick,
+        modifier = modifier,
         text = text,
         color = color,
         colors = colors,
@@ -87,6 +88,7 @@ fun AzToggle(
     val text = if (isChecked) toggleOnText else toggleOffText
     AzNavRailButton(
         onClick = onToggle,
+        modifier = modifier,
         text = text,
         color = color,
         colors = colors,
@@ -156,6 +158,7 @@ fun AzCycler(
                 }
             }
         },
+        modifier = modifier,
         text = displayedOption,
         color = color,
         colors = colors,
