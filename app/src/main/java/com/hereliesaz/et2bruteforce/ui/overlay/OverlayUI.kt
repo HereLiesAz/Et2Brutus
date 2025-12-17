@@ -46,6 +46,7 @@ import com.hereliesaz.et2bruteforce.model.Profile
 import com.hereliesaz.et2bruteforce.services.FloatingControlService.Companion.MAIN_CONTROLLER_KEY
 import com.hereliesaz.et2bruteforce.ui.theme.*
 import com.hereliesaz.et2bruteforce.ui.aznavrail.AzNavRail
+import com.hereliesaz.et2bruteforce.ui.aznavrail.AzButton
 import com.hereliesaz.et2bruteforce.ui.aznavrail.model.AzButtonShape
 import kotlin.math.cos
 import kotlin.math.roundToInt
@@ -181,19 +182,19 @@ fun MainControllerUi(
             onOverlayDrag = onDrag
         )
 
-        azMenuItem(
+        azRailItem(
             id = "start",
             text = "Start",
             disabled = !(status == BruteforceStatus.READY || status == BruteforceStatus.PAUSED),
             onClick = onStart
         )
-        azMenuItem(
+        azRailItem(
             id = "pause",
             text = "Pause",
             disabled = status != BruteforceStatus.RUNNING,
             onClick = onPause
         )
-        azMenuItem(
+        azRailItem(
             id = "stop",
             text = "Stop",
             disabled = status == BruteforceStatus.IDLE,
@@ -268,11 +269,16 @@ fun ConfigButtonUi(
     var fabCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
     Box(contentAlignment = Alignment.Center) {
-        FloatingActionButton(
+        val text = when (nodeType) {
+            NodeType.INPUT -> "Input"
+            NodeType.SUBMIT -> "Submit"
+            NodeType.POPUP -> "Popup"
+        }
+        AzButton(
             onClick = { /* Drag only */ },
-            shape = CircleShape,
+            text = text,
+            color = nodeType.getColor(),
             modifier = Modifier
-                .size(48.dp)
                 .onGloballyPositioned { coordinates ->
                     fabCoordinates = coordinates
                 }
@@ -293,18 +299,8 @@ fun ConfigButtonUi(
                             }
                         }
                     )
-                },
-            containerColor = if (isIdentified) {
-                nodeType.getColor()
-            } else MaterialTheme.colorScheme.secondaryContainer
-        ) {
-            val icon = when (nodeType) {
-                NodeType.INPUT -> Icons.Default.TextFields
-                NodeType.SUBMIT -> Icons.Default.ArrowForward
-                NodeType.POPUP -> Icons.Default.Warning
-            }
-            Icon(icon, contentDescription = "$nodeType Button")
-        }
+                }
+        )
         if (isIdentified) {
             Icon(
                 Icons.Default.CheckCircle,
