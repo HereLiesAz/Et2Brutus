@@ -478,29 +478,31 @@ class BruteforceAccessibilityService : AccessibilityService() {
      * Runs within the caller's context.
      */
     private fun getAllTextFromNode(node: AccessibilityNodeInfo?): List<String> {
-        if (node == null || !serviceScope.isActive) return emptyList() // Base case and cancellation check
+        // Use a Set to maintain uniqueness and avoid repeated distinct() calls
+        val texts = mutableSetOf<String>()
+        collectTextRecursive(node, texts)
+        return texts.toList()
+    }
 
-        val texts = mutableListOf<String>()
+    private fun collectTextRecursive(node: AccessibilityNodeInfo?, texts: MutableSet<String>) {
+        if (node == null || !serviceScope.isActive) return
+
         try {
-            // Extract text and content description safely
             val nodeText = node.text?.toString()?.trim()
             val nodeDesc = node.contentDescription?.toString()?.trim()
+
             if (!nodeText.isNullOrEmpty()) texts.add(nodeText)
             if (!nodeDesc.isNullOrEmpty()) texts.add(nodeDesc)
 
-            // Recurse through children
             for (i in 0 until node.childCount) {
-                if (!serviceScope.isActive) break // Check cancellation
+                if (!serviceScope.isActive) break
                 val child = node.getChild(i)
-                texts.addAll(getAllTextFromNode(child)) // Add text from children
+                collectTextRecursive(child, texts)
                 // child?.recycle() // Simplified: Omit recycling
             }
-        } catch(e: Exception) {
-            // Log errors during text extraction
+        } catch (e: Exception) {
             Log.e(TAG, "Error in getAllTextFromNode for node ID: ${node.viewIdResourceName}", e)
         }
-        // Return unique, non-empty text strings
-        return texts.filter { it.isNotEmpty() }.distinct()
     }
 
 
