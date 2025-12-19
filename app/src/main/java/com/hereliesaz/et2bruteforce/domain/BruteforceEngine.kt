@@ -62,16 +62,34 @@ class BruteforceEngine @Inject constructor(
                     val currentLineBytes = word.length + 1 // Approximate bytes including newline
 
                     if (word.length == targetLength) {
+                        // Standard dictionary word
                         if (!pastResumePoint && word == resumeFrom) {
                             pastResumePoint = true
                             Log.i(TAG, "Resuming dictionary from: $word")
                         }
 
                         if (pastResumePoint) {
-                            // Calculate progress (approximation)
                             val progress = if (totalSize > 0) bytesRead.toFloat() / totalSize else 0f
-                            trySend(word to progress).isSuccess // Emit word and progress
+                            trySend(word to progress).isSuccess
                             lineCount++
+                        }
+
+                        // Hybrid Mode: Append suffixes to valid dictionary words
+                        if (settings.hybridModeEnabled) {
+                            for (suffix in settings.hybridSuffixes) {
+                                val hybridWord = word + suffix
+                                // Check if we need to resume from a hybrid word
+                                if (!pastResumePoint && hybridWord == resumeFrom) {
+                                    pastResumePoint = true
+                                    Log.i(TAG, "Resuming dictionary (hybrid) from: $hybridWord")
+                                }
+
+                                if (pastResumePoint) {
+                                     val progress = if (totalSize > 0) bytesRead.toFloat() / totalSize else 0f
+                                     trySend(hybridWord to progress).isSuccess
+                                     lineCount++
+                                }
+                            }
                         }
                     }
                     bytesRead += currentLineBytes
