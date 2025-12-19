@@ -12,6 +12,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.lifecycle.lifecycleScope
@@ -273,13 +275,33 @@ fun PermissionRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(permissionName)
         Text(
-            text = if (isGranted) stringResource(R.string.main_granted) else stringResource(R.string.main_needed),
-            color = if (isGranted) PermissionGranted else PermissionDenied
+            text = permissionName,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f)
         )
-        Button(onClick = onRequestPermission, enabled = !isGranted) {
-            Text(if (isGranted) stringResource(R.string.main_granted) else stringResource(R.string.main_request))
+
+        if (isGranted) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.main_granted),
+                    color = PermissionGranted,
+                    style = MaterialTheme.typography.labelLarge
+                )
+                Icon(
+                    imageVector = Icons.Filled.CheckCircle,
+                    contentDescription = null,
+                    tint = PermissionGranted,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        } else {
+            Button(onClick = onRequestPermission) {
+                Text(stringResource(R.string.main_request))
+            }
         }
     }
 }
