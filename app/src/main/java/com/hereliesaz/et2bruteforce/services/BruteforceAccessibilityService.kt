@@ -62,17 +62,20 @@ class AccessibilityInteractionManager @Inject constructor() {
     val identifiedPopupNode: StateFlow<NodeInfo?> = _identifiedPopupNode.asStateFlow()
 
     fun updateInputNode(nodeInfo: NodeInfo?) {
-        Log.d("InteractionManager", "Updating Input Node: ${nodeInfo?.viewIdResourceName ?: nodeInfo?.text}")
+        Log.d("InteractionManager", "Updating Input Node: ${nodeInfo?.safeIdentifier}")
         _identifiedInputNode.value = nodeInfo?.copy()
     }
     fun updateSubmitNode(nodeInfo: NodeInfo?) {
-        Log.d("InteractionManager", "Updating Submit Node: ${nodeInfo?.viewIdResourceName ?: nodeInfo?.text}")
+        Log.d("InteractionManager", "Updating Submit Node: ${nodeInfo?.safeIdentifier}")
         _identifiedSubmitNode.value = nodeInfo?.copy()
     }
     fun updatePopupNode(nodeInfo: NodeInfo?) {
-        Log.d("InteractionManager", "Updating Popup Node: ${nodeInfo?.viewIdResourceName ?: nodeInfo?.text}")
+        Log.d("InteractionManager", "Updating Popup Node: ${nodeInfo?.safeIdentifier}")
         _identifiedPopupNode.value = nodeInfo?.copy()
     }
+
+    private val NodeInfo.safeIdentifier: String
+        get() = viewIdResourceName ?: "${className ?: "Node"} $boundsInScreen"
     fun clearAllNodes() {
         Log.d("InteractionManager", "Clearing all identified nodes.")
         _identifiedInputNode.value = null
