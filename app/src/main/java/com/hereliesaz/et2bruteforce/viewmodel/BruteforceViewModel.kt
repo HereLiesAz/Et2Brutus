@@ -20,8 +20,6 @@ import kotlinx.coroutines.delay
 import com.hereliesaz.et2bruteforce.model.Profile
 import com.hereliesaz.et2bruteforce.services.NodeInfo
 import com.hereliesaz.et2bruteforce.services.ScreenAnalysisResult
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor5
 import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor6
 import com.hereliesaz.et2bruteforce.ui.theme.WalkthroughColor7

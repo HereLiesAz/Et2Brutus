@@ -38,7 +38,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
         val CONTROLLER_POSITION_Y = intPreferencesKey("controller_position_y")
         val WALKTHROUGH_COMPLETED = booleanPreferencesKey("walkthrough_completed")
         val HYBRID_MODE_ENABLED = booleanPreferencesKey("hybrid_mode_enabled")
-        val HYBRID_SUFFIXES = stringSetPreferencesKey("hybrid_suffixes")
+        val HYBRID_SUFFIXES = stringPreferencesKey("hybrid_suffixes_list")
     }
 
     val settingsFlow: Flow<BruteforceSettings> = context.dataStore.data
@@ -56,7 +56,13 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
                 controllerPosition = Point(preferences[PreferencesKeys.CONTROLLER_POSITION_X] ?: 100, preferences[PreferencesKeys.CONTROLLER_POSITION_Y] ?: 300),
                 walkthroughCompleted = preferences[PreferencesKeys.WALKTHROUGH_COMPLETED] ?: false,
                 hybridModeEnabled = preferences[PreferencesKeys.HYBRID_MODE_ENABLED] ?: false,
-                hybridSuffixes = preferences[PreferencesKeys.HYBRID_SUFFIXES]?.toList() ?: listOf("!", "123", "?")
+                hybridSuffixes = preferences[PreferencesKeys.HYBRID_SUFFIXES]?.let {
+                    try {
+                        Json.decodeFromString<List<String>>(it)
+                    } catch (e: Exception) {
+                        listOf("!", "123", "?")
+                    }
+                } ?: listOf("!", "123", "?")
             )
         }
 
@@ -147,7 +153,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
 
     suspend fun updateHybridSuffixes(suffixes: List<String>) {
         context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.HYBRID_SUFFIXES] = suffixes.toSet()
+            preferences[PreferencesKeys.HYBRID_SUFFIXES] = Json.encodeToString(suffixes)
         }
     }
 
