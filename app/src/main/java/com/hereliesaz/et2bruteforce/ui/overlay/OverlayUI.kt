@@ -37,6 +37,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.toggleable
 import com.hereliesaz.et2bruteforce.model.BruteforceState
 import com.hereliesaz.et2bruteforce.model.BruteforceStatus
 import com.hereliesaz.et2bruteforce.model.CharacterSetType
@@ -283,6 +287,7 @@ fun ConfigButtonUi(
             text = text,
             color = if (isIdentified) nodeType.getColor() else MaterialTheme.colorScheme.secondaryContainer,
             modifier = Modifier
+                .semantics { contentDescription = "$text, Drag to target" }
                 .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
                 .onGloballyPositioned { coordinates ->
                     fabCoordinates = coordinates
@@ -345,7 +350,8 @@ private fun SettingsDialog(
                     value = settings.characterLength.toFloat(),
                     onValueChange = { onUpdateLength(it.roundToInt()) },
                     valueRange = 1f..12f,
-                    steps = 10
+                    steps = 10,
+                    modifier = Modifier.semantics { contentDescription = "Character length" }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -376,10 +382,20 @@ private fun SettingsDialog(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .toggleable(
+                            value = settings.resumeFromLast,
+                            onValueChange = onToggleResume,
+                            role = Role.Switch
+                        )
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Switch(
                         checked = settings.resumeFromLast,
-                        onCheckedChange = onToggleResume
+                        onCheckedChange = null
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Resume from last attempt", style = MaterialTheme.typography.bodyMedium)
@@ -389,10 +405,20 @@ private fun SettingsDialog(
                 }
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .toggleable(
+                            value = settings.singleAttemptMode,
+                            onValueChange = onToggleSingleAttemptMode,
+                            role = Role.Switch
+                        )
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Switch(
                         checked = settings.singleAttemptMode,
-                        onCheckedChange = onToggleSingleAttemptMode
+                        onCheckedChange = null
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Single Attempt Mode", style = MaterialTheme.typography.bodyMedium)
@@ -441,8 +467,8 @@ private fun CharacterSetChip(
     FilterChip(
         selected = type == selectedType,
         onClick = { onUpdateCharset(type) },
-        label = { Text(type.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }, fontSize = 11.sp) },
-        modifier = Modifier.height(32.dp)
+        label = { Text(type.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelMedium) },
+        modifier = Modifier.defaultMinSize(minHeight = 48.dp)
     )
 }
 
