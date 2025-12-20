@@ -322,7 +322,10 @@ class BruteforceAccessibilityService : AccessibilityService() {
     private suspend fun findNodeAt(screenX: Int, screenY: Int, filter: (AccessibilityNodeInfo) -> Boolean): NodeInfo? = withContext(Dispatchers.Default) {
         if (!coroutineContext.isActive) return@withContext null // Check if coroutine is active
         val root = rootInActiveWindow ?: return@withContext null // Get fresh root node
-        val nearbyNodes = mutableListOf<Pair<AccessibilityNodeInfo, Int>>()
+
+        // Optimization: Avoid allocating list for candidates. Track best match directly.
+        var bestMatchNode: AccessibilityNodeInfo? = null
+        var minDistanceSq = Double.MAX_VALUE
 
         // Inner recursive function - runs within the withContext(Default) scope
         fun findRecursive(node: AccessibilityNodeInfo?) {
@@ -333,14 +336,20 @@ class BruteforceAccessibilityService : AccessibilityService() {
             val bounds = Rect()
             nodeCompat.getBoundsInScreen(bounds) // Get screen bounds
 
+            val containsPoint = bounds.contains(screenX, screenY)
+
             // Check if node contains the point and satisfies the filter
-            if (bounds.contains(screenX, screenY) && filter(node)) {
+            if (containsPoint && filter(node)) {
                 val centerX = bounds.centerX()
                 val centerY = bounds.centerY()
                 val dx = (screenX - centerX).toDouble()
                 val dy = (screenY - centerY).toDouble()
                 val distanceSq = (dx * dx) + (dy * dy) // Calculate squared distance
-                nearbyNodes.add(node to distanceSq.toInt()) // Add original node
+
+                if (distanceSq < minDistanceSq) {
+                    minDistanceSq = distanceSq
+                    bestMatchNode = node
+                }
             }
 
             // Recurse through children
@@ -358,9 +367,6 @@ class BruteforceAccessibilityService : AccessibilityService() {
         } finally {
             // root?.recycle() // Simplified: Omit recycling
         }
-
-        // Find the closest node among matches
-        val bestMatchNode: AccessibilityNodeInfo? = nearbyNodes.minByOrNull { it.second }?.first
 
         // Convert to NodeInfo data class if a match was found
         bestMatchNode?.let { node ->
