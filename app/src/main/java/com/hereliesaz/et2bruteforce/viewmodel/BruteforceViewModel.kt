@@ -324,7 +324,7 @@ class BruteforceViewModel @Inject constructor(
                             ensureActive() // Check if job was cancelled externally (e.g., user stop)
                             if (uiState.value.status != BruteforceStatus.RUNNING) throw CancellationException("Status changed externally.")
 
-                            Log.v(TAG, "Attempting dictionary word: $candidate")
+                            Log.v(TAG, "Attempting dictionary word: [REDACTED]")
                             _uiState.update { it.copy(currentAttempt = candidate, dictionaryLoadProgress = progress, attemptCount = attemptCounter + 1) } // Update count immediately
 
                             val attemptResult = performSingleAttempt(inputNode, submitNode, popupNode, candidate, currentSettings)
@@ -367,7 +367,7 @@ class BruteforceViewModel @Inject constructor(
                             ensureActive()
                             if (uiState.value.status != BruteforceStatus.RUNNING) throw CancellationException("Status changed externally.")
 
-                            Log.v(TAG, "Attempting permutation: $candidate")
+                            Log.v(TAG, "Attempting permutation: [REDACTED]")
                             _uiState.update { it.copy(currentAttempt = candidate, dictionaryLoadProgress = 1f, attemptCount = attemptCounter + 1)} // Update count immediately
 
                             val attemptResult = performSingleAttempt(inputNode, submitNode, popupNode, candidate, permutationSettings)
@@ -585,7 +585,7 @@ class BruteforceViewModel @Inject constructor(
             bruteforceJob?.cancel() // Cancel the current job
             bruteforceJob = null
             updateStatus(BruteforceStatus.PAUSED)
-            Log.i(TAG, "Bruteforce Paused. Last attempt: ${uiState.value.currentAttempt}")
+            Log.i(TAG, "Bruteforce Paused.")
         }
     }
     fun stopBruteforce() {
@@ -609,7 +609,7 @@ class BruteforceViewModel @Inject constructor(
     }
     fun confirmSuccess() {
         if(uiState.value.status == BruteforceStatus.SUCCESS_DETECTED) {
-            Log.i(TAG, "Success confirmed by user for: ${uiState.value.successCandidate}")
+            Log.i(TAG, "Success confirmed by user.")
             updateStatus(BruteforceStatus.IDLE) // Go back to idle
             // Optional: Clear last attempt
             // viewModelScope.launch { settingsRepository.updateLastAttempt(null) }
@@ -617,7 +617,7 @@ class BruteforceViewModel @Inject constructor(
     }
     fun rejectSuccess() {
         if(uiState.value.status == BruteforceStatus.SUCCESS_DETECTED) {
-            Log.w(TAG, "Success rejected by user for: ${uiState.value.successCandidate}. Resuming might be needed.")
+            Log.w(TAG, "Success rejected by user. Resuming might be needed.")
             // Go back to paused, user needs to manually start again
             updateStatus(BruteforceStatus.PAUSED)
             _uiState.update { it.copy(successCandidate = null) } // Clear candidate

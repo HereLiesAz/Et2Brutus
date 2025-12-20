@@ -65,7 +65,7 @@ class BruteforceEngine @Inject constructor(
                         // Standard dictionary word
                         if (!pastResumePoint && word == resumeFrom) {
                             pastResumePoint = true
-                            Log.i(TAG, "Resuming dictionary from: $word")
+                            Log.i(TAG, "Resuming dictionary from matching word")
                         }
 
                         if (pastResumePoint) {
@@ -81,7 +81,7 @@ class BruteforceEngine @Inject constructor(
                                 // Check if we need to resume from a hybrid word
                                 if (!pastResumePoint && hybridWord == resumeFrom) {
                                     pastResumePoint = true
-                                    Log.i(TAG, "Resuming dictionary (hybrid) from: $hybridWord")
+                                    Log.i(TAG, "Resuming dictionary (hybrid) from matching word")
                                 }
 
                                 if (pastResumePoint) {
@@ -137,7 +137,7 @@ class BruteforceEngine @Inject constructor(
                 if (charIndex != -1) {
                     indices[i] = charIndex
                 } else {
-                    Log.w(TAG,"Resume string '$resumeFrom' contains characters not in selected charset. Starting from beginning.")
+                    Log.w(TAG,"Resume string contains characters not in selected charset. Starting from beginning.")
                     possibleResume = false
                     break // Character not in charset, cannot resume from here
                 }
@@ -160,7 +160,7 @@ class BruteforceEngine @Inject constructor(
                     return@callbackFlow
                 }
                 pastResumePoint = true // Ready to start emitting from the calculated next point
-                Log.i(TAG, "Resuming permutations after: $resumeFrom")
+                Log.i(TAG, "Resuming permutations after matching point")
             }
         } else {
             pastResumePoint = true // Start emitting from the beginning
@@ -180,7 +180,7 @@ class BruteforceEngine @Inject constructor(
                 // This case should ideally be handled by the initial index setup,
                 // but acts as a fallback if initial setup didn't advance indices.
                 pastResumePoint = true
-                Log.i(TAG, "Reached resume point during generation: $resumeFrom")
+                Log.i(TAG, "Reached resume point during generation")
                 // Don't emit the resume string itself, start from the next one
             }
 
