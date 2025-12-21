@@ -6,7 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -120,7 +120,7 @@ fun ProfileListItem(
             Text(profile.name)
             Row {
                 IconButton(onClick = { onLoadProfile(profile) }) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Load")
+                    Icon(Icons.Default.Restore, contentDescription = "Load")
                 }
                 IconButton(onClick = { isEditing = true }) {
                     Icon(Icons.Default.Edit, contentDescription = "Rename")
