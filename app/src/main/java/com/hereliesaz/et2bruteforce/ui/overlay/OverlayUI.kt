@@ -373,12 +373,13 @@ private fun SettingsDialog(
                         paceText = it
                         it.toLongOrNull()?.let { pace -> onUpdatePace(pace) }
                     },
-                    label = { Text("Pace (ms)") },
+                    label = { Text("Attempt Delay") },
+                    supportingText = { Text("Delay in milliseconds (e.g., 500)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
-                    leadingIcon = { Icon(Icons.Default.Timer, null) }
+                    leadingIcon = { Icon(Icons.Default.Timer, contentDescription = null) }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
