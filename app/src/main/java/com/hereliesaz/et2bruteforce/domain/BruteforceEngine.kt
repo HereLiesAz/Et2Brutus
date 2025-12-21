@@ -42,7 +42,7 @@ class BruteforceEngine @Inject constructor(
         val resumeFrom = if (settings.resumeFromLast) settings.lastAttempt else null
         var pastResumePoint = resumeFrom == null // Start emitting immediately if not resuming
 
-        Log.i(TAG, "Starting dictionary generation. Target Length: $targetLength, Resume From: $resumeFrom")
+        Log.i(TAG, "Starting dictionary generation. Target Length: $targetLength, Resume From: ${if (resumeFrom != null) "[REDACTED]" else "null"}")
 
         try {
             context.contentResolver.openInputStream(dictionaryUri)?.use { inputStream ->
@@ -117,7 +117,7 @@ class BruteforceEngine @Inject constructor(
         val resumeFrom = if (settings.resumeFromLast) settings.lastAttempt else null
         var pastResumePoint = resumeFrom == null
 
-        Log.i(TAG, "Starting permutation generation. Length: $length, Charset Size: ${charset.length}, Resume From: $resumeFrom")
+        Log.i(TAG, "Starting permutation generation. Length: $length, Charset Size: ${charset.length}, Resume From: ${if (resumeFrom != null) "[REDACTED]" else "null"}")
 
         if (charset.isEmpty() || length <= 0) {
             Log.w(TAG, "Invalid charset or length for permutation.")
@@ -155,7 +155,7 @@ class BruteforceEngine @Inject constructor(
                 }
                 if (current < 0) {
                     // If we carried over past the start, it means the resume string was the last possible permutation
-                    Log.i(TAG, "Resume string '$resumeFrom' was the last permutation. No further permutations possible.")
+                    Log.i(TAG, "Resume string was the last permutation. No further permutations possible.")
                     close()
                     return@callbackFlow
                 }
