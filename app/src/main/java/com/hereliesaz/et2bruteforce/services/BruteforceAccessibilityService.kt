@@ -287,27 +287,18 @@ class BruteforceAccessibilityService : AccessibilityService() {
                 Log.w(TAG, "AnalyzeScreen: Root node is null.")
                 return@withContext ScreenAnalysisResult.Unknown
             }
-            // Perform text extraction within try/finally to attempt recycling root
-            val allText = try {
-                getAllTextFromNode(root).joinToString(separator = " | ").lowercase()
+
+            val captchaLower = captchaKeywords.map { it.lowercase() }
+            val successLower = successKeywords.map { it.lowercase() }
+
+            try {
+                scanTreeForKeywords(root, successLower, captchaLower)
             } catch (e: Exception) {
-                Log.e(TAG, "Error during getAllTextFromNode", e)
-                "" // Return empty string on error
+                Log.e(TAG, "Error during screen analysis", e)
+                ScreenAnalysisResult.Unknown
             } finally {
                 // Recycling root is complex due to potential concurrent access. Omitted for stability.
                 // root.recycle()
-            }
-
-            // Log analysis text only in debug builds if necessary
-            // Log.v(TAG, "Screen Text (lower): $allText")
-
-            // Check keywords
-            when {
-                captchaKeywords.any { keyword -> allText.contains(keyword.lowercase()) } ->
-                    ScreenAnalysisResult.CaptchaDetected.also { Log.w(TAG,"CAPTCHA detected") }
-                successKeywords.any { keyword -> allText.contains(keyword.lowercase()) } ->
-                    ScreenAnalysisResult.SuccessDetected.also { Log.i(TAG,"SUCCESS detected") }
-                else -> ScreenAnalysisResult.Unknown
             }
         }
     }
@@ -482,36 +473,59 @@ class BruteforceAccessibilityService : AccessibilityService() {
     }
 
 
-    /**
-     * Recursively extracts all textual content from a node and its descendants.
-     * Runs within the caller's context.
-     */
-    private fun getAllTextFromNode(node: AccessibilityNodeInfo?): List<String> {
-        // Use a Set to maintain uniqueness and avoid repeated distinct() calls
-        val texts = mutableSetOf<String>()
-        collectTextRecursive(node, texts)
-        return texts.toList()
-    }
+    private fun scanTreeForKeywords(
+        node: AccessibilityNodeInfo,
+        successKeywords: List<String>,
+        captchaKeywords: List<String>
+    ): ScreenAnalysisResult {
+        if (!serviceScope.isActive) return ScreenAnalysisResult.Unknown
 
-    private fun collectTextRecursive(node: AccessibilityNodeInfo?, texts: MutableSet<String>) {
-        if (node == null || !serviceScope.isActive) return
+        var successFound = false
+        // Track visited text to avoid redundant checks (optimization akin to the original Set)
+        val visitedText = mutableSetOf<String>()
 
-        try {
-            val nodeText = node.text?.toString()?.trim()
-            val nodeDesc = node.contentDescription?.toString()?.trim()
+        fun recurse(currentNode: AccessibilityNodeInfo): ScreenAnalysisResult {
+            if (!serviceScope.isActive) return ScreenAnalysisResult.Unknown
 
-            if (!nodeText.isNullOrEmpty()) texts.add(nodeText)
-            if (!nodeDesc.isNullOrEmpty()) texts.add(nodeDesc)
+            val nodeText = currentNode.text?.toString()
+            val nodeDesc = currentNode.contentDescription?.toString()
 
-            for (i in 0 until node.childCount) {
-                if (!serviceScope.isActive) break
-                val child = node.getChild(i)
-                collectTextRecursive(child, texts)
-                // child?.recycle() // Simplified: Omit recycling
+            // Helper to check text against keywords
+            fun checkText(text: String): ScreenAnalysisResult? {
+                if (text.isBlank()) return null
+                val lower = text.lowercase()
+                if (!visitedText.add(lower)) return null // Skip if already checked
+
+                if (captchaKeywords.any { lower.contains(it) }) return ScreenAnalysisResult.CaptchaDetected
+                if (!successFound && successKeywords.any { lower.contains(it) }) successFound = true
+                return null
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error in getAllTextFromNode for node ID: ${node.viewIdResourceName}", e)
+
+            if (nodeText != null) {
+                val res = checkText(nodeText)
+                if (res != null) return res
+            }
+            if (nodeDesc != null) {
+                val res = checkText(nodeDesc)
+                if (res != null) return res
+            }
+
+            for (i in 0 until currentNode.childCount) {
+                if (!serviceScope.isActive) break
+                val child = currentNode.getChild(i)
+                if (child != null) {
+                    val result = recurse(child)
+                    // child.recycle() // Omitted
+                    if (result == ScreenAnalysisResult.CaptchaDetected) return ScreenAnalysisResult.CaptchaDetected
+                }
+            }
+            return ScreenAnalysisResult.Unknown
         }
+
+        val result = recurse(node)
+        return if (result == ScreenAnalysisResult.CaptchaDetected) ScreenAnalysisResult.CaptchaDetected.also { Log.w(TAG,"CAPTCHA detected") }
+        else if (successFound) ScreenAnalysisResult.SuccessDetected.also { Log.i(TAG,"SUCCESS detected") }
+        else ScreenAnalysisResult.Unknown
     }
 
 
