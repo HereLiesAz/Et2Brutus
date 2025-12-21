@@ -5,3 +5,7 @@
 ## 2024-05-23 - Accessibility Node Search Safety
 **Learning:** Optimizing tree traversal by pruning branches based on parent bounds (`!parent.contains(point)`) is unsafe in Android View hierarchies. Views can render children outside their bounds (e.g., `clipChildren="false"`, negative margins), so pruning based on parent bounds causes false negatives for these elements.
 **Action:** When optimizing hit-testing in View/Accessibility trees, always recurse into children even if the parent doesn't contain the target point, unless you can guarantee strict containment.
+
+## 2024-05-24 - Screen Analysis Optimization
+**Learning:** Collecting all text from an Accessibility tree into a single string for keyword searching creates massive temporary allocations and prevents early exit.
+**Action:** Use a streaming visitor pattern to check keywords on-the-fly during traversal. This reduces memory pressure and allows stopping immediately when a high-priority match (e.g. CAPTCHA) is found.
