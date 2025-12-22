@@ -430,9 +430,12 @@ class BruteforceAccessibilityService : AccessibilityService() {
     private fun findNodeRecursiveViaProperties(node: AccessibilityNodeInfo?, target: NodeInfo): AccessibilityNodeInfo? {
         if (node == null || !serviceScope.isActive) return null
 
-        val candidates = mutableListOf<Pair<AccessibilityNodeInfo, Int>>()
+        var bestNode: AccessibilityNodeInfo? = null
+        var bestScore = 0
+        // Reuse a single Rect to avoid N allocations
+        val reusableRect = Rect()
 
-        fun calculateScore(candidate: AccessibilityNodeInfo, target: NodeInfo): Int {
+        fun calculateScore(candidate: AccessibilityNodeInfo, parentCandidate: AccessibilityNodeInfo?, target: NodeInfo): Int {
             var score = 0
             if (!candidate.viewIdResourceName.isNullOrEmpty() && candidate.viewIdResourceName == target.viewIdResourceName) score += 10
             if (candidate.className?.equals(target.className) == true) score += 2
@@ -440,36 +443,40 @@ class BruteforceAccessibilityService : AccessibilityService() {
             if (candidate.contentDescription?.equals(target.contentDescription) == true) score += 5
             if (candidate.isClickable == target.isClickable) score += 1
             if (candidate.isEditable == target.isEditable) score += 1
-            if (candidate.parent?.className?.equals(target.parentInfo?.className) == true) score += 3
-            if (!candidate.parent?.viewIdResourceName.isNullOrEmpty() && candidate.parent?.viewIdResourceName == target.parentInfo?.viewIdResourceName) score += 5
+            // Use passed parent to avoid expensive getParent() call and object creation
+            if (parentCandidate != null) {
+                if (parentCandidate.className?.equals(target.parentInfo?.className) == true) score += 3
+                if (!parentCandidate.viewIdResourceName.isNullOrEmpty() && parentCandidate.viewIdResourceName == target.parentInfo?.viewIdResourceName) score += 5
+            }
             return score
         }
 
-        fun findRecursive(currentNode: AccessibilityNodeInfo) {
+        fun findRecursive(currentNode: AccessibilityNodeInfo, parentNode: AccessibilityNodeInfo?) {
             if (!serviceScope.isActive) return
 
-            val currentBounds = Rect()
-            currentNode.getBoundsInScreen(currentBounds)
-            if (!Rect.intersects(currentBounds, target.boundsInScreen)) {
+            currentNode.getBoundsInScreen(reusableRect)
+            if (!Rect.intersects(reusableRect, target.boundsInScreen)) {
                 return
             }
 
-            val score = calculateScore(currentNode, target)
-            if (score > 0) {
-                candidates.add(currentNode to score)
+            val score = calculateScore(currentNode, parentNode, target)
+            if (score > 0 && score > bestScore) {
+                bestScore = score
+                bestNode = currentNode
             }
 
             for (i in 0 until currentNode.childCount) {
                 val child = currentNode.getChild(i)
                 if (child != null) {
-                    findRecursive(child)
+                    findRecursive(child, currentNode)
                 }
             }
         }
 
-        findRecursive(node)
+        // Initial parent is null as we don't have efficient access to it and it's likely the root
+        findRecursive(node, null)
 
-        return candidates.maxByOrNull { it.second }?.first
+        return bestNode
     }
 
 
