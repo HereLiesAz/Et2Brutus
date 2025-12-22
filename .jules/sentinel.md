@@ -12,3 +12,8 @@
 **Vulnerability:** `BruteforceEngine` was logging the `resumeFrom` value (last attempted password) in cleartext upon starting generation or resuming.
 **Learning:** Sensitive data variables can easily slip into informational logs (`Log.i`) intended for debugging state flow, especially when "resuming" state.
 **Prevention:** Mark sensitive variables (like passwords, keys, PII) explicitly in the code or use a wrapper type (e.g. `Sensitive<T>`) that overrides `toString()` to return "[REDACTED]", preventing accidental logging.
+
+## 2025-12-22 - Unintended Cloud Backup of Sensitive Data
+**Vulnerability:** The application was configured with `android:allowBackup="true"` by default, allowing sensitive configuration (attack profiles, dictionary paths, last attempted passwords) to be backed up to the cloud and potentially restored to other devices.
+**Learning:** Android templates often default to allowing backup, which is risky for security tools or apps handling sensitive local state that shouldn't leave the device.
+**Prevention:** Explicitly set `android:allowBackup="false"` in `AndroidManifest.xml` for security-critical applications to prevent data exfiltration via ADB or Cloud Backup.
