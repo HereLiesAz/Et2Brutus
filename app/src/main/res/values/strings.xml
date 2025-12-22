@@ -96,4 +96,9 @@
     <string name="walkthrough_prev">Prev</string>
     <string name="walkthrough_next">Next</string>
     <string name="walkthrough_finish">Finish</string>
+    <string name="profile_delete_confirm_title">Delete Profile</string>
+    <string name="profile_delete_confirm_message">Are you sure you want to delete profile \'%1$s\'?</string>
+    <string name="profile_delete_confirm_yes">Delete</string>
+    <string name="profile_delete_confirm_no">Cancel</string>
+    <string name="profile_empty_state">No profiles saved yet.</string>
 </resources>
