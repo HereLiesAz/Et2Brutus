@@ -9,3 +9,7 @@
 ## 2024-05-25 - Label Clarity over Jargon
 **Learning:** Technical terms like "Pace (ms)" in form labels increase cognitive load. Users shouldn't have to parse units or technical concepts in titles.
 **Action:** Use descriptive, natural language labels ("Attempt Delay") and move technical details (units like "ms") to supporting text.
+
+## 2024-05-26 - Prevention of Data Loss
+**Learning:** Instant deletion of user data (like profiles) without confirmation causes anxiety and errors.
+**Action:** Always wrap destructive actions in a confirmation dialog that clearly states what is being deleted.

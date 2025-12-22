@@ -11,7 +11,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.hereliesaz.et2bruteforce.R
 import com.hereliesaz.et2bruteforce.model.Profile
 
 @Composable
@@ -24,6 +26,38 @@ fun ProfileManagementDialog(
     onRenameProfile: (Profile, String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    var profileToDelete by remember { mutableStateOf<Profile?>(null) }
+
+    if (profileToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { profileToDelete = null },
+            title = { Text(stringResource(R.string.profile_delete_confirm_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.profile_delete_confirm_message,
+                        profileToDelete?.name ?: ""
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        profileToDelete?.let { onDeleteProfile(it) }
+                        profileToDelete = null
+                    }
+                ) {
+                    Text(stringResource(R.string.profile_delete_confirm_yes))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { profileToDelete = null }) {
+                    Text(stringResource(R.string.profile_delete_confirm_no))
+                }
+            }
+        )
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Profile Management") },
@@ -67,14 +101,28 @@ fun ProfileManagementDialog(
                 ) {
                     Text("Save Current as New Profile")
                 }
-                LazyColumn {
-                    items(profiles) { profile ->
-                        ProfileListItem(
-                            profile = profile,
-                            onLoadProfile = onLoadProfile,
-                            onDeleteProfile = onDeleteProfile,
-                            onRenameProfile = onRenameProfile
+                if (profiles.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            stringResource(R.string.profile_empty_state),
+                            style = MaterialTheme.typography.bodyMedium
                         )
+                    }
+                } else {
+                    LazyColumn {
+                        items(profiles) { profile ->
+                            ProfileListItem(
+                                profile = profile,
+                                onLoadProfile = onLoadProfile,
+                                onDeleteProfile = { profileToDelete = it },
+                                onRenameProfile = onRenameProfile
+                            )
+                        }
                     }
                 }
             }
