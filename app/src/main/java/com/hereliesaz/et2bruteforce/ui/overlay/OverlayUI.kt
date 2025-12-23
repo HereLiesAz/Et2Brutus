@@ -402,7 +402,13 @@ private fun SettingsDialog(
                     Text("Resume from last attempt", style = MaterialTheme.typography.bodyMedium)
                 }
                 if (settings.resumeFromLast && settings.lastAttempt != null) {
-                    Text(" Last: ${settings.lastAttempt}", style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                    val last = settings.lastAttempt!!
+                    val masked = if (last.length > 2) {
+                        last.take(1) + "*".repeat(last.length - 2) + last.takeLast(1)
+                    } else {
+                        "*".repeat(last.length)
+                    }
+                    Text(" Last: $masked", style = MaterialTheme.typography.bodySmall, maxLines = 1)
                 }
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -494,7 +500,7 @@ private fun getStatusMessage(uiState: BruteforceState): String {
     return when (uiState.status) {
         BruteforceStatus.IDLE -> "Idle"
         BruteforceStatus.READY -> "Ready"
-        BruteforceStatus.RUNNING -> "Running: ${uiState.currentAttempt ?: ""} (${uiState.attemptCount})"
+        BruteforceStatus.RUNNING -> "Running... (${uiState.attemptCount})"
         BruteforceStatus.PAUSED -> "Paused (${uiState.attemptCount})"
         BruteforceStatus.CAPTCHA_DETECTED -> "CAPTCHA!"
         BruteforceStatus.SUCCESS_DETECTED -> "Success!"
