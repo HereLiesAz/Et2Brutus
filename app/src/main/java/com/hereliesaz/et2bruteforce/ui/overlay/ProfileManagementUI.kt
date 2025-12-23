@@ -7,11 +7,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Restore
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.hereliesaz.et2bruteforce.R
 import com.hereliesaz.et2bruteforce.model.Profile
@@ -65,6 +68,16 @@ fun ProfileManagementDialog(
             Column {
                 var newProfileName by remember { mutableStateOf("") }
                 var showError by remember { mutableStateOf(false) }
+
+                val onSaveAttempt = {
+                    if (newProfileName.isBlank()) {
+                        showError = true
+                    } else {
+                        onSaveProfile(newProfileName)
+                        showError = false
+                    }
+                }
+
                 OutlinedTextField(
                     value = newProfileName,
                     onValueChange = {
@@ -72,7 +85,10 @@ fun ProfileManagementDialog(
                         if (showError && it.isNotBlank()) showError = false
                     },
                     label = { Text("New Profile Name") },
-                    isError = showError && newProfileName.isBlank()
+                    isError = showError && newProfileName.isBlank(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { onSaveAttempt() })
                 )
                 if (showError && newProfileName.isBlank()) {
                     Text(
@@ -89,15 +105,8 @@ fun ProfileManagementDialog(
                     )
                 }
                 Button(
-                    onClick = {
-                        if (newProfileName.isBlank()) {
-                            showError = true
-                        } else {
-                            onSaveProfile(newProfileName)
-                            showError = false
-                        }
-                    },
-                    enabled = newProfileName.isNotBlank()
+                    onClick = onSaveAttempt
+                    // Enabled allows user to click and see error if empty
                 ) {
                     Text("Save Current as New Profile")
                 }
@@ -153,15 +162,19 @@ fun ProfileListItem(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         if (isEditing) {
+            val onSaveRename = {
+                onRenameProfile(profile, newName)
+                isEditing = false
+            }
             OutlinedTextField(
                 value = newName,
                 onValueChange = { newName = it },
-                label = { Text("New Name") }
+                label = { Text("New Name") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { onSaveRename() })
             )
-            Button(onClick = {
-                onRenameProfile(profile, newName)
-                isEditing = false
-            }) {
+            Button(onClick = onSaveRename) {
                 Text("Save")
             }
         } else {

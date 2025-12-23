@@ -13,3 +13,7 @@
 ## 2024-05-26 - Prevention of Data Loss
 **Learning:** Instant deletion of user data (like profiles) without confirmation causes anxiety and errors.
 **Action:** Always wrap destructive actions in a confirmation dialog that clearly states what is being deleted.
+
+## 2025-12-23 - Active Error Feedback over Disabled States
+**Learning:** Disabling a form submission button prevents users from learning why their input is invalid.
+**Action:** Keep submission buttons enabled and use the click event to validate inputs and display specific error messages.
