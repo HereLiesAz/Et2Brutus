@@ -197,7 +197,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
 
     private suspend fun identifyAndReportNode(coordinates: Point, nodeType: NodeType, requestId: String) {
         val filter: (AccessibilityNodeInfo) -> Boolean = when (nodeType) {
-            NodeType.INPUT -> { node -> AccessibilityNodeInfoCompat.wrap(node).isEditable }
+            NodeType.INPUT -> { node -> node.isEditable }
             NodeType.SUBMIT, NodeType.POPUP -> { node -> node.isClickable }
         }
         // Node finding can be slow, run on Default dispatcher
@@ -220,7 +220,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
 
     private suspend fun highlightAndReportNode(coordinates: Point, nodeType: NodeType, requestId: String) {
         val filter: (AccessibilityNodeInfo) -> Boolean = when (nodeType) {
-            NodeType.INPUT -> { node -> AccessibilityNodeInfoCompat.wrap(node).isEditable }
+            NodeType.INPUT -> { node -> node.isEditable }
             NodeType.SUBMIT, NodeType.POPUP -> { node -> node.isClickable }
         }
         val foundNodeInfo: NodeInfo? = findNodeAt(coordinates.x, coordinates.y, filter)
@@ -318,21 +318,22 @@ class BruteforceAccessibilityService : AccessibilityService() {
         var bestMatchNode: AccessibilityNodeInfo? = null
         var minDistanceSq = Double.MAX_VALUE
 
+        // Reuse Rect to avoid object allocation in recursion
+        val reusableRect = Rect()
+
         // Inner recursive function - runs within the withContext(Default) scope
         fun findRecursive(node: AccessibilityNodeInfo?) {
             if (node == null) return // Base case
 
-            // Use Compat wrapper for safe property access
-            val nodeCompat = AccessibilityNodeInfoCompat.wrap(node)
-            val bounds = Rect()
-            nodeCompat.getBoundsInScreen(bounds) // Get screen bounds
+            // Use native method for bounds to avoid Compat wrapper allocation
+            node.getBoundsInScreen(reusableRect)
 
-            val containsPoint = bounds.contains(screenX, screenY)
+            val containsPoint = reusableRect.contains(screenX, screenY)
 
             // Check if node contains the point and satisfies the filter
             if (containsPoint && filter(node)) {
-                val centerX = bounds.centerX()
-                val centerY = bounds.centerY()
+                val centerX = reusableRect.centerX()
+                val centerY = reusableRect.centerY()
                 val dx = (screenX - centerX).toDouble()
                 val dy = (screenY - centerY).toDouble()
                 val distanceSq = (dx * dx) + (dy * dy) // Calculate squared distance
@@ -343,11 +344,11 @@ class BruteforceAccessibilityService : AccessibilityService() {
                 }
             }
 
-            // Recurse through children
-            for (i in 0 until nodeCompat.childCount) {
+            // Recurse through children using native methods
+            for (i in 0 until node.childCount) {
                 if (!coroutineContext.isActive) break // Check cancellation before recursing further
-                val child = nodeCompat.getChild(i)
-                findRecursive(child?.unwrap()) // Recurse with original node
+                val child = node.getChild(i)
+                findRecursive(child)
                 // child?.recycle() // Simplified: Omit recycling
             }
         }
