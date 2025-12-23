@@ -325,7 +325,7 @@ class BruteforceViewModel @Inject constructor(
                             if (uiState.value.status != BruteforceStatus.RUNNING) throw CancellationException("Status changed externally.")
 
                             Log.v(TAG, "Attempting dictionary word: [REDACTED]")
-                            _uiState.update { it.copy(currentAttempt = candidate, dictionaryLoadProgress = progress, attemptCount = attemptCounter + 1) } // Update count immediately
+                            _uiState.update { it.copy(dictionaryLoadProgress = progress, attemptCount = attemptCounter + 1) } // Update count immediately
 
                             val attemptResult = performSingleAttempt(inputNode, submitNode, popupNode, candidate, currentSettings)
 
@@ -368,7 +368,7 @@ class BruteforceViewModel @Inject constructor(
                             if (uiState.value.status != BruteforceStatus.RUNNING) throw CancellationException("Status changed externally.")
 
                             Log.v(TAG, "Attempting permutation: [REDACTED]")
-                            _uiState.update { it.copy(currentAttempt = candidate, dictionaryLoadProgress = 1f, attemptCount = attemptCounter + 1)} // Update count immediately
+                            _uiState.update { it.copy(dictionaryLoadProgress = 1f, attemptCount = attemptCounter + 1)} // Update count immediately
 
                             val attemptResult = performSingleAttempt(inputNode, submitNode, popupNode, candidate, permutationSettings)
 
@@ -598,7 +598,6 @@ class BruteforceViewModel @Inject constructor(
                 entry.value.copy(identifiedNodeInfo = null)
             }
             currentState.copy(
-                currentAttempt = null,
                 attemptCount = 0,
                 dictionaryLoadProgress = 0f,
                 buttonConfigs = newConfigs

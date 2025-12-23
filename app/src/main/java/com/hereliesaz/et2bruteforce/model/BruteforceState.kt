@@ -67,7 +67,6 @@ data class BruteforceState(
         NodeType.SUBMIT to ButtonConfig(NodeType.SUBMIT, Point(100, 500)),
         NodeType.POPUP to ButtonConfig(NodeType.POPUP, Point(100, 700))
     ),
-    val currentAttempt: String? = null,
     val attemptCount: Long = 0,
     val dictionaryLoadProgress: Float = 0f, // 0.0 to 1.0 for dictionary loading
     val errorMessage: String? = null,
