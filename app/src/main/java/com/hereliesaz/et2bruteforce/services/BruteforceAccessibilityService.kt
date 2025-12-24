@@ -501,11 +501,14 @@ class BruteforceAccessibilityService : AccessibilityService() {
             // Helper to check text against keywords
             fun checkText(text: String): ScreenAnalysisResult? {
                 if (text.isBlank()) return null
-                val lower = text.lowercase()
-                if (!visitedText.add(lower)) return null // Skip if already checked
+                // Optimization: Avoid converting text to lowercase to prevent String allocation.
+                // We use ignoreCase = true in contains() instead.
+                // Note: visitedText deduplication is now case-sensitive ("Ok" vs "OK" checked twice),
+                // but this tradeoff is acceptable to avoid allocation on every node.
+                if (!visitedText.add(text)) return null // Skip if already checked
 
-                if (captchaKeywords.any { lower.contains(it) }) return ScreenAnalysisResult.CaptchaDetected
-                if (!successFound && successKeywords.any { lower.contains(it) }) successFound = true
+                if (captchaKeywords.any { text.contains(it, ignoreCase = true) }) return ScreenAnalysisResult.CaptchaDetected
+                if (!successFound && successKeywords.any { text.contains(it, ignoreCase = true) }) successFound = true
                 return null
             }
 
