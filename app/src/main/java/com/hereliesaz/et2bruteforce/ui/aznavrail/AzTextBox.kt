@@ -134,7 +134,7 @@ fun AzTextBox(
     }
 
     LaunchedEffect(text) {
-        suggestions = if (text.isNotBlank() && enabled) {
+        suggestions = if (text.isNotBlank() && enabled && !secret) {
             HistoryManager.getSuggestions(text, historyContext)
         } else {
             emptyList()
@@ -235,7 +235,9 @@ fun AzTextBox(
                         modifier = Modifier
                             .then(if (enabled) Modifier.clickable {
                                 onSubmit(text)
-                                HistoryManager.addEntry(text, historyContext)
+                                if (!secret) {
+                                    HistoryManager.addEntry(text, historyContext)
+                                }
                                 if (onValueChange == null) {
                                     onTextChange("")
                                 }
