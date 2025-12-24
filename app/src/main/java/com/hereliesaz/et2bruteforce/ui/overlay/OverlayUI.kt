@@ -17,6 +17,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -440,7 +441,17 @@ private fun SettingsDialog(
                         onUpdateSuccessKeywords(it.split(',').map { kw -> kw.trim() }.filter { kw -> kw.isNotEmpty() })
                     },
                     label = { Text("Success Keywords (comma-separated)") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = {
+                        if (successKeywordsText.isNotEmpty()) {
+                            IconButton(onClick = {
+                                successKeywordsText = ""
+                                onUpdateSuccessKeywords(emptyList())
+                            }) {
+                                Icon(Icons.Filled.Clear, contentDescription = "Clear success keywords")
+                            }
+                        }
+                    }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -452,7 +463,17 @@ private fun SettingsDialog(
                         onUpdateCaptchaKeywords(it.split(',').map { kw -> kw.trim() }.filter { kw -> kw.isNotEmpty() })
                     },
                     label = { Text("CAPTCHA Keywords (comma-separated)") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = {
+                        if (captchaKeywordsText.isNotEmpty()) {
+                            IconButton(onClick = {
+                                captchaKeywordsText = ""
+                                onUpdateCaptchaKeywords(emptyList())
+                            }) {
+                                Icon(Icons.Filled.Clear, contentDescription = "Clear CAPTCHA keywords")
+                            }
+                        }
+                    }
                 )
             }
         },
