@@ -101,4 +101,5 @@
     <string name="profile_delete_confirm_yes">Delete</string>
     <string name="profile_delete_confirm_no">Cancel</string>
     <string name="profile_empty_state">No profiles saved yet.</string>
+    <string name="profile_empty_state_hint">Save your current setup to get started.</string>
 </resources>
