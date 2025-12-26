@@ -495,31 +495,31 @@ class BruteforceAccessibilityService : AccessibilityService() {
         fun recurse(currentNode: AccessibilityNodeInfo): ScreenAnalysisResult {
             if (!serviceScope.isActive) return ScreenAnalysisResult.Unknown
 
-            val nodeText = currentNode.text?.toString()
-            val nodeDesc = currentNode.contentDescription?.toString()
-
             // Helper to check text against keywords
-            fun checkText(text: String): ScreenAnalysisResult? {
-                if (text.isBlank()) return null
+            // Optimization: Accepts CharSequence to avoid toString() allocation for blank text
+            fun checkText(text: CharSequence?): ScreenAnalysisResult? {
+                if (text.isNullOrBlank()) return null // Avoids allocation
+
+                // We need String for Set, but only if it's not blank
+                val textStr = text.toString()
+
                 // Optimization: Avoid converting text to lowercase to prevent String allocation.
                 // We use ignoreCase = true in contains() instead.
                 // Note: visitedText deduplication is now case-sensitive ("Ok" vs "OK" checked twice),
                 // but this tradeoff is acceptable to avoid allocation on every node.
-                if (!visitedText.add(text)) return null // Skip if already checked
+                if (!visitedText.add(textStr)) return null // Skip if already checked
 
                 if (captchaKeywords.any { text.contains(it, ignoreCase = true) }) return ScreenAnalysisResult.CaptchaDetected
                 if (!successFound && successKeywords.any { text.contains(it, ignoreCase = true) }) successFound = true
                 return null
             }
 
-            if (nodeText != null) {
-                val res = checkText(nodeText)
-                if (res != null) return res
-            }
-            if (nodeDesc != null) {
-                val res = checkText(nodeDesc)
-                if (res != null) return res
-            }
+            // Check text properties without premature string conversion
+            val resText = checkText(currentNode.text)
+            if (resText != null) return resText
+
+            val resDesc = checkText(currentNode.contentDescription)
+            if (resDesc != null) return resDesc
 
             for (i in 0 until currentNode.childCount) {
                 if (!serviceScope.isActive) break
