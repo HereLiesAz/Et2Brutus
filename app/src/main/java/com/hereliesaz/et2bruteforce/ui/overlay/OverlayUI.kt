@@ -34,6 +34,7 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -376,7 +377,10 @@ private fun SettingsDialog(
                     },
                     label = { Text("Attempt Delay") },
                     supportingText = { Text("Delay in milliseconds (e.g., 500)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done
+                    ),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
@@ -441,6 +445,7 @@ private fun SettingsDialog(
                         onUpdateSuccessKeywords(it.split(',').map { kw -> kw.trim() }.filter { kw -> kw.isNotEmpty() })
                     },
                     label = { Text("Success Keywords (comma-separated)") },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = {
                         if (successKeywordsText.isNotEmpty()) {
@@ -463,6 +468,7 @@ private fun SettingsDialog(
                         onUpdateCaptchaKeywords(it.split(',').map { kw -> kw.trim() }.filter { kw -> kw.isNotEmpty() })
                     },
                     label = { Text("CAPTCHA Keywords (comma-separated)") },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = {
                         if (captchaKeywordsText.isNotEmpty()) {

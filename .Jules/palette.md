@@ -17,3 +17,7 @@
 ## 2025-12-23 - Active Error Feedback over Disabled States
 **Learning:** Disabling a form submission button prevents users from learning why their input is invalid.
 **Action:** Keep submission buttons enabled and use the click event to validate inputs and display specific error messages.
+
+## 2025-01-08 - Keyboard Actions in Forms
+**Learning:** On mobile, manually dismissing the keyboard between form fields breaks flow and causes frustration.
+**Action:** Always configure `ImeAction` (Next/Done) for text inputs to allow smooth navigation between fields or easy completion.
