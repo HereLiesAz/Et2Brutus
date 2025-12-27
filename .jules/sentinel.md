@@ -17,3 +17,8 @@
 **Vulnerability:** The application was configured with `android:allowBackup="true"` by default, allowing sensitive configuration (attack profiles, dictionary paths, last attempted passwords) to be backed up to the cloud and potentially restored to other devices.
 **Learning:** Android templates often default to allowing backup, which is risky for security tools or apps handling sensitive local state that shouldn't leave the device.
 **Prevention:** Explicitly set `android:allowBackup="false"` in `AndroidManifest.xml` for security-critical applications to prevent data exfiltration via ADB or Cloud Backup.
+
+## 2025-12-22 - Password Exposure in Accessibility Node Cache
+**Vulnerability:** The Accessibility Service was caching the `text` content of all identified nodes, including password fields, in the `NodeInfo` data class. This sensitive data would persist in memory (in `InteractionManager` and `BruteforceState`) and could potentially be exposed if state was serialized or logged.
+**Learning:** Data classes used for state transfer (like `NodeInfo`) often outlive the immediate scope of an operation. If they indiscriminately capture sensitive fields from sources (like `AccessibilityNodeInfo`), they become a persistent security risk.
+**Prevention:** Sanitize or omit sensitive fields (like `text` from `isPassword=true` nodes) at the point of ingestion/creation of the data object, rather than relying on downstream consumers to handle it safely.

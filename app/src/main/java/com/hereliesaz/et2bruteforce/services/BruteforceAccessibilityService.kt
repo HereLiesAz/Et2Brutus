@@ -376,7 +376,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
             }
             NodeInfo(
                 className = node.className,
-                text = node.text,
+                text = if (node.isPassword) null else node.text,
                 contentDescription = node.contentDescription,
                 viewIdResourceName = node.viewIdResourceName,
                 boundsInScreen = nodeBounds,
