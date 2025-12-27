@@ -48,7 +48,7 @@ class BruteforceViewModelTest {
         logMock.`when`<Int> { Log.e(any(), any()) }.thenReturn(0)
         logMock.`when`<Int> { Log.w(any<String>(), any<String>()) }.thenReturn(0)
         logMock.`when`<Int> { Log.i(any(), any()) }.thenReturn(0)
-        logMock.`when`<Int> { Log.v(any(), any()) }.thenReturn(0)
+        logMock.`when`<Int> { Log.v(any<String>(), any<String>()) }.thenReturn(0)
 
         // Mock flows
         val defaultSettings = mock<BruteforceSettings>()
