@@ -206,11 +206,11 @@ class BruteforceEngine @Inject constructor(
 
 
     private fun generateString(indices: IntArray, charset: String): String {
-        return buildString(indices.size) {
-            indices.forEach { index ->
-                append(charset[index])
-            }
+        val chars = CharArray(indices.size)
+        for (i in indices.indices) {
+            chars[i] = charset[indices[i]]
         }
+        return String(chars)
     }
 
     private fun getCharacterSet(type: CharacterSetType): String {
