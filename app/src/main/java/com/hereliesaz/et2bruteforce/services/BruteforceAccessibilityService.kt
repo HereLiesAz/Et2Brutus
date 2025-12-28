@@ -339,6 +339,13 @@ class BruteforceAccessibilityService : AccessibilityService() {
                 val distanceSq = (dx * dx) + (dy * dy) // Calculate squared distance
 
                 if (distanceSq < minDistanceSq) {
+                    // Recycle the previous best match if it exists and is not the root
+                    // (since root is managed by the outer try/finally)
+                    val oldBest = bestMatchNode
+                    if (oldBest != null && oldBest != root) {
+                        oldBest.recycle()
+                    }
+
                     minDistanceSq = distanceSq
                     bestMatchNode = node
                 }
@@ -348,8 +355,14 @@ class BruteforceAccessibilityService : AccessibilityService() {
             for (i in 0 until node.childCount) {
                 if (!coroutineContext.isActive) break // Check cancellation before recursing further
                 val child = node.getChild(i)
-                findRecursive(child)
-                // child?.recycle() // Simplified: Omit recycling
+                // We handle null child implicitly because findRecursive(null) returns immediately
+                if (child != null) {
+                    findRecursive(child)
+                    // If the child is not the best match, we can recycle it
+                    if (child != bestMatchNode) {
+                        child.recycle()
+                    }
+                }
             }
         }
 
@@ -357,11 +370,14 @@ class BruteforceAccessibilityService : AccessibilityService() {
         try {
             findRecursive(root)
         } finally {
-            // root?.recycle() // Simplified: Omit recycling
+            // Only recycle root if it's not the best match (which we want to return info from)
+            if (root != null && root != bestMatchNode) {
+                root.recycle()
+            }
         }
 
         // Convert to NodeInfo data class if a match was found
-        bestMatchNode?.let { node ->
+        val result = bestMatchNode?.let { node ->
             val nodeBounds = Rect()
             node.getBoundsInScreen(nodeBounds) // Get bounds again
             val parent = node.parent
@@ -386,6 +402,12 @@ class BruteforceAccessibilityService : AccessibilityService() {
                 parentInfo = parentInfo
             )
         } // Implicitly returns null if bestMatchNode is null
+
+        // Always recycle bestMatchNode after extracting data
+        bestMatchNode?.recycle()
+
+        // 'return' is allowed here as this is the last statement of the withContext block
+        result
     }
 
     /**
@@ -526,7 +548,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
                 val child = currentNode.getChild(i)
                 if (child != null) {
                     val result = recurse(child)
-                    // child.recycle() // Omitted
+                    child.recycle() // recycle immediately
                     if (result == ScreenAnalysisResult.CaptchaDetected) return ScreenAnalysisResult.CaptchaDetected
                 }
             }
