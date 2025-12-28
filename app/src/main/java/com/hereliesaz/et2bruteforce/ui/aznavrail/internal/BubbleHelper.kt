@@ -16,6 +16,7 @@ import androidx.core.graphics.drawable.toBitmap
 
 internal object BubbleHelper {
 
+    @android.annotation.SuppressLint("MissingPermission", "NotificationPermission")
     fun launch(context: Context, targetActivity: Class<*>) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
 

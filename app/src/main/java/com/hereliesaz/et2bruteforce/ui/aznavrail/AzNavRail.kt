@@ -250,6 +250,7 @@ fun AzNavRail(
         }
     }
 
+    @android.annotation.SuppressLint("ContextCastToActivity")
     val activity = LocalContext.current as? androidx.activity.ComponentActivity
     LaunchedEffect(activity) {
         activity?.intent?.let { intent ->
