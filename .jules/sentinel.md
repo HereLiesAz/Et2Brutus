@@ -22,3 +22,8 @@
 **Vulnerability:** The Accessibility Service was caching the `text` content of all identified nodes, including password fields, in the `NodeInfo` data class. This sensitive data would persist in memory (in `InteractionManager` and `BruteforceState`) and could potentially be exposed if state was serialized or logged.
 **Learning:** Data classes used for state transfer (like `NodeInfo`) often outlive the immediate scope of an operation. If they indiscriminately capture sensitive fields from sources (like `AccessibilityNodeInfo`), they become a persistent security risk.
 **Prevention:** Sanitize or omit sensitive fields (like `text` from `isPassword=true` nodes) at the point of ingestion/creation of the data object, rather than relying on downstream consumers to handle it safely.
+
+## 2025-12-22 - PII Leaks in Accessibility Node Persistence
+**Vulnerability:** The `NodeInfo` data class, used for persisting identified UI elements in Profiles, was capturing the `text` content of all nodes, including editable fields (inputs).
+**Learning:** Even if `isPassword` is handled, standard input fields (username, email, search) often contain PII or transient user data at the moment of identification. Persisting this snapshot in a configuration profile is a privacy leak.
+**Prevention:** Explicitly clear the `text` field for any node where `isEditable` is true during the creation of the persistence object (`NodeInfo`), relying instead on View IDs or structural properties for re-identification.
