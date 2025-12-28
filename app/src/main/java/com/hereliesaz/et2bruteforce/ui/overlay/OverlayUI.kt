@@ -181,6 +181,7 @@ fun MainControllerUi(
 ) {
     var showSettingsDialog by rememberSaveable { mutableStateOf(false) }
     var showProfileDialog by rememberSaveable { mutableStateOf(false) }
+    var showCloseDialog by rememberSaveable { mutableStateOf(false) }
     val status = uiState.status
 
     val railDrag = remember(onDrag) { { x: Float, y: Float -> onDrag(x, y) } }
@@ -233,7 +234,25 @@ fun MainControllerUi(
         azMenuItem(
             id = "close",
             text = "Close",
-            onClick = onClose
+            onClick = { showCloseDialog = true }
+        )
+    }
+
+    if (showCloseDialog) {
+        AlertDialog(
+            onDismissRequest = { showCloseDialog = false },
+            title = { Text("Close Service?") },
+            text = { Text("This will remove the floating controller.") },
+            confirmButton = {
+                Button(onClick = onClose) {
+                    Text("Close")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCloseDialog = false }) {
+                    Text("Cancel")
+                }
+            }
         )
     }
 
