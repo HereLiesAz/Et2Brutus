@@ -98,6 +98,8 @@ class BruteforceAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val TAG = "BruteforceAccessService"
+        // Security: Prevent StackOverflowError from deep view hierarchies (DoS)
+        private const val MAX_RECURSION_DEPTH = 50
     }
 
     // --- Service Lifecycle Methods ---
@@ -322,8 +324,8 @@ class BruteforceAccessibilityService : AccessibilityService() {
         val reusableRect = Rect()
 
         // Inner recursive function - runs within the withContext(Default) scope
-        fun findRecursive(node: AccessibilityNodeInfo?) {
-            if (node == null) return // Base case
+        fun findRecursive(node: AccessibilityNodeInfo?, depth: Int) {
+            if (node == null || depth > MAX_RECURSION_DEPTH) return // Base case
 
             // Use native method for bounds to avoid Compat wrapper allocation
             node.getBoundsInScreen(reusableRect)
@@ -357,7 +359,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
                 val child = node.getChild(i)
                 // We handle null child implicitly because findRecursive(null) returns immediately
                 if (child != null) {
-                    findRecursive(child)
+                    findRecursive(child, depth + 1)
                     // If the child is not the best match, we can recycle it
                     if (child != bestMatchNode) {
                         child.recycle()
@@ -368,7 +370,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
 
         // Start search and handle potential cleanup
         try {
-            findRecursive(root)
+            findRecursive(root, 0)
         } finally {
             // Only recycle root if it's not the best match (which we want to return info from)
             if (root != null && root != bestMatchNode) {
@@ -474,8 +476,8 @@ class BruteforceAccessibilityService : AccessibilityService() {
             return score
         }
 
-        fun findRecursive(currentNode: AccessibilityNodeInfo, parentNode: AccessibilityNodeInfo?) {
-            if (!serviceScope.isActive) return
+        fun findRecursive(currentNode: AccessibilityNodeInfo, parentNode: AccessibilityNodeInfo?, depth: Int) {
+            if (!serviceScope.isActive || depth > MAX_RECURSION_DEPTH) return
 
             currentNode.getBoundsInScreen(reusableRect)
             if (!Rect.intersects(reusableRect, target.boundsInScreen)) {
@@ -491,13 +493,13 @@ class BruteforceAccessibilityService : AccessibilityService() {
             for (i in 0 until currentNode.childCount) {
                 val child = currentNode.getChild(i)
                 if (child != null) {
-                    findRecursive(child, currentNode)
+                    findRecursive(child, currentNode, depth + 1)
                 }
             }
         }
 
         // Initial parent is null as we don't have efficient access to it and it's likely the root
-        findRecursive(node, null)
+        findRecursive(node, null, 0)
 
         return bestNode
     }
@@ -514,8 +516,8 @@ class BruteforceAccessibilityService : AccessibilityService() {
         // Track visited text to avoid redundant checks (optimization akin to the original Set)
         val visitedText = mutableSetOf<String>()
 
-        fun recurse(currentNode: AccessibilityNodeInfo): ScreenAnalysisResult {
-            if (!serviceScope.isActive) return ScreenAnalysisResult.Unknown
+        fun recurse(currentNode: AccessibilityNodeInfo, depth: Int): ScreenAnalysisResult {
+            if (!serviceScope.isActive || depth > MAX_RECURSION_DEPTH) return ScreenAnalysisResult.Unknown
 
             // Helper to check text against keywords
             // Optimization: Accepts CharSequence to avoid toString() allocation for blank text
@@ -547,7 +549,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
                 if (!serviceScope.isActive) break
                 val child = currentNode.getChild(i)
                 if (child != null) {
-                    val result = recurse(child)
+                    val result = recurse(child, depth + 1)
                     child.recycle() // recycle immediately
                     if (result == ScreenAnalysisResult.CaptchaDetected) return ScreenAnalysisResult.CaptchaDetected
                 }
@@ -555,7 +557,7 @@ class BruteforceAccessibilityService : AccessibilityService() {
             return ScreenAnalysisResult.Unknown
         }
 
-        val result = recurse(node)
+        val result = recurse(node, 0)
         return if (result == ScreenAnalysisResult.CaptchaDetected) ScreenAnalysisResult.CaptchaDetected.also { Log.w(TAG,"CAPTCHA detected") }
         else if (successFound) ScreenAnalysisResult.SuccessDetected.also { Log.i(TAG,"SUCCESS detected") }
         else ScreenAnalysisResult.Unknown
