@@ -52,6 +52,12 @@ android {
             excludes += "META-INF/gradle/incremental.annotation.processors"
         }
     }
+
+    testOptions {
+        unitTests {
+            isReturnDefaultValues = true
+        }
+    }
     // Optional: Add this if you encounter desugaring issues with newer SDKs/libraries
     // coreLibraryDesugaringEnabled = true
 }

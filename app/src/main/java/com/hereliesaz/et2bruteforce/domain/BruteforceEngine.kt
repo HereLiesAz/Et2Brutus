@@ -126,6 +126,8 @@ class BruteforceEngine @Inject constructor(
         }
 
         val indices = IntArray(length) { 0 }
+        // Optimization: reuse a single CharArray buffer to reduce allocations during generation
+        val charBuffer = CharArray(length)
         val maxIndex = charset.length - 1
         var counter = 0L
 
@@ -169,7 +171,7 @@ class BruteforceEngine @Inject constructor(
 
         // Generation loop
         while (isActive) {
-            val candidate = generateString(indices, charset)
+            val candidate = generateString(indices, charset, charBuffer)
 
             if (pastResumePoint) {
                 trySend(candidate).isSuccess // Emit the candidate string
@@ -205,12 +207,11 @@ class BruteforceEngine @Inject constructor(
     }.flowOn(Dispatchers.Default) // CPU-bound task on Default dispatcher
 
 
-    private fun generateString(indices: IntArray, charset: String): String {
-        val chars = CharArray(indices.size)
+    private fun generateString(indices: IntArray, charset: String, buffer: CharArray): String {
         for (i in indices.indices) {
-            chars[i] = charset[indices[i]]
+            buffer[i] = charset[indices[i]]
         }
-        return String(chars)
+        return String(buffer)
     }
 
     private fun getCharacterSet(type: CharacterSetType): String {
