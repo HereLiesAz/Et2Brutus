@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.toggleable
 import com.hereliesaz.et2bruteforce.model.BruteforceState
@@ -372,7 +373,10 @@ private fun SettingsDialog(
                     onValueChange = { onUpdateLength(it.roundToInt()) },
                     valueRange = 1f..12f,
                     steps = 10,
-                    modifier = Modifier.semantics { contentDescription = "Character length" }
+                    modifier = Modifier.semantics {
+                        contentDescription = "Character length"
+                        stateDescription = "${settings.characterLength} characters"
+                    }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -517,12 +521,22 @@ private fun CharacterSetChip(
     selectedType: CharacterSetType,
     onUpdateCharset: (CharacterSetType) -> Unit
 ) {
+    val label = getCharacterSetLabel(type)
     FilterChip(
         selected = type == selectedType,
         onClick = { onUpdateCharset(type) },
-        label = { Text(type.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelMedium) },
+        label = { Text(label, style = MaterialTheme.typography.labelMedium) },
         modifier = Modifier.defaultMinSize(minHeight = 48.dp)
     )
+}
+
+private fun getCharacterSetLabel(type: CharacterSetType): String {
+    return when (type) {
+        CharacterSetType.LETTERS -> "Letters (A-z)"
+        CharacterSetType.NUMBERS -> "Numbers (0-9)"
+        CharacterSetType.LETTERS_NUMBERS -> "Alphanumeric"
+        CharacterSetType.ALPHANUMERIC_SPECIAL -> "All (Symbols)"
+    }
 }
 
 @Composable
