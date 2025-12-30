@@ -538,12 +538,15 @@ class BruteforceAccessibilityService : AccessibilityService() {
                 return null
             }
 
-            // Check text properties without premature string conversion
-            val resText = checkText(currentNode.text)
-            if (resText != null) return resText
+            // Security: Do not scan password fields for keywords to avoid reading sensitive data
+            if (!currentNode.isPassword) {
+                // Check text properties without premature string conversion
+                val resText = checkText(currentNode.text)
+                if (resText != null) return resText
 
-            val resDesc = checkText(currentNode.contentDescription)
-            if (resDesc != null) return resDesc
+                val resDesc = checkText(currentNode.contentDescription)
+                if (resDesc != null) return resDesc
+            }
 
             for (i in 0 until currentNode.childCount) {
                 if (!serviceScope.isActive) break
