@@ -479,10 +479,9 @@ class BruteforceAccessibilityService : AccessibilityService() {
         fun findRecursive(currentNode: AccessibilityNodeInfo, parentNode: AccessibilityNodeInfo?, depth: Int) {
             if (!serviceScope.isActive || depth > MAX_RECURSION_DEPTH) return
 
-            currentNode.getBoundsInScreen(reusableRect)
-            if (!Rect.intersects(reusableRect, target.boundsInScreen)) {
-                return
-            }
+            // Removed unsafe optimization: Pruning based on bounds (Rect.intersects) is unsafe
+            // because children can render outside parent bounds (e.g. clipChildren=false).
+            // We must traverse the full relevant subtree to ensure we find the target.
 
             val score = calculateScore(currentNode, parentNode, target)
             if (score > 0 && score > bestScore) {
@@ -494,6 +493,10 @@ class BruteforceAccessibilityService : AccessibilityService() {
                 val child = currentNode.getChild(i)
                 if (child != null) {
                     findRecursive(child, currentNode, depth + 1)
+                    // Fix memory leak: Recycle child if it's not the bestNode we're keeping
+                    if (child != bestNode) {
+                        child.recycle()
+                    }
                 }
             }
         }
