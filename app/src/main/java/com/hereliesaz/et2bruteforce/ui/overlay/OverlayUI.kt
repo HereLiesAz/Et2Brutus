@@ -407,7 +407,8 @@ private fun SettingsDialog(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
-                    leadingIcon = { Icon(Icons.Default.Timer, contentDescription = null) }
+                    leadingIcon = { Icon(Icons.Default.Timer, contentDescription = null) },
+                    suffix = { Text("ms") }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
