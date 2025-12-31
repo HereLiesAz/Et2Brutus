@@ -526,6 +526,17 @@ private fun CharacterSetChip(
         selected = type == selectedType,
         onClick = { onUpdateCharset(type) },
         label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+        leadingIcon = if (type == selectedType) {
+            {
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(FilterChipDefaults.IconSize)
+                )
+            }
+        } else {
+            null
+        },
         modifier = Modifier.defaultMinSize(minHeight = 48.dp)
     )
 }

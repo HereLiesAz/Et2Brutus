@@ -21,3 +21,7 @@
 ## 2025-01-08 - Keyboard Actions in Forms
 **Learning:** On mobile, manually dismissing the keyboard between form fields breaks flow and causes frustration.
 **Action:** Always configure `ImeAction` (Next/Done) for text inputs to allow smooth navigation between fields or easy completion.
+
+## 2025-01-08 - Visual Selection in Filter Chips
+**Learning:** `FilterChip` components are harder to scan when they rely solely on color for selection state.
+**Action:** Always include a leading check icon (`Icons.Filled.Check`) in selected `FilterChip`s to provide clear, accessible visual confirmation.
